@@ -8,6 +8,8 @@ import {
   importTextbooks,
   type ImportRow,
 } from '@/app/[locale]/librarian/textbook-actions';
+import { createClient } from '@/lib/supabase/client';
+import { storageKey, getErrorMessage } from '@/lib/utils';
 import StatCard from './StatCard';
 import {
   BookMarked,
@@ -19,6 +21,8 @@ import {
   AlertCircle,
   FileDown,
   FileSpreadsheet,
+  Image as ImageIcon,
+  X,
 } from 'lucide-react';
 import { useRef, useState, useTransition } from 'react';
 import type { Textbook } from '@/types/database';
@@ -35,7 +39,22 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
   const [success, setSuccess] = useState('');
   const [importMsg, setImportMsg] = useState('');
   const [importing, setImporting] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState('');
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+
+  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setCoverFile(file);
+    setCoverPreview(file ? URL.createObjectURL(file) : '');
+  }
+
+  function removeCover() {
+    setCoverFile(null);
+    setCoverPreview('');
+    if (coverInputRef.current) coverInputRef.current.value = '';
+  }
 
   const totalTitles = textbooks.length;
   const totalCopies = textbooks.reduce((s, b) => s + (b.total_copies ?? 0), 0);
@@ -56,13 +75,28 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
     setError('');
     setSuccess('');
     startTransition(async () => {
-      const res = await addTextbook(fd);
-      if (res.ok) {
-        setSuccess(t('addedN', { count: res.added ?? 0 }));
-        formRef.current?.reset();
-        router.refresh();
-      } else {
-        setError(res.message || tc('required'));
+      try {
+        // Muqova tanlangan bo'lsa — avval Storage'ga yuklaymiz
+        if (coverFile) {
+          const supabase = createClient();
+          const path = storageKey('covers', coverFile.name, 'jpg');
+          const { error: upErr } = await supabase.storage
+            .from('books')
+            .upload(path, coverFile, { contentType: coverFile.type });
+          if (upErr) throw upErr;
+          fd.set('cover_url', supabase.storage.from('books').getPublicUrl(path).data.publicUrl);
+        }
+        const res = await addTextbook(fd);
+        if (res.ok) {
+          setSuccess(t('addedN', { count: res.added ?? 0 }));
+          formRef.current?.reset();
+          removeCover();
+          router.refresh();
+        } else {
+          setError(res.message || tc('required'));
+        }
+      } catch (err) {
+        setError(getErrorMessage(err));
       }
     });
   }
@@ -200,6 +234,40 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
               <span className="mb-1 block text-sm font-medium text-stone-700">{t('year')}</span>
               <input name="publication_year" type="number" min={0} max={2100} className="tfld" />
             </label>
+
+            {/* Muqova rasmi */}
+            <div className="block sm:col-span-2">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('cover')}</span>
+              <div className="flex items-center gap-4">
+                <div className="flex h-20 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
+                  {coverPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={coverPreview} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-stone-300" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverChange}
+                    className="block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100"
+                  />
+                  {coverPreview && (
+                    <button
+                      type="button"
+                      onClick={removeCover}
+                      className="mt-2 inline-flex items-center gap-1 text-sm text-red-600 hover:underline"
+                    >
+                      <X className="h-4 w-4" />
+                      {t('removeCover')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -281,7 +349,17 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
                   <tbody className="divide-y divide-stone-100">
                     {byGrade.get(g)!.map((b) => (
                       <tr key={b.id} className="hover:bg-stone-50">
-                        <td className="p-3 font-medium text-stone-900">{b.title}</td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-7 shrink-0 overflow-hidden rounded border border-stone-200 bg-stone-50">
+                              {b.cover_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={b.cover_url} alt="" className="h-full w-full object-cover" />
+                              ) : null}
+                            </div>
+                            <span className="font-medium text-stone-900">{b.title}</span>
+                          </div>
+                        </td>
                         <td className="p-3 text-stone-600">
                           {b.available_copies} / {b.total_copies}
                         </td>

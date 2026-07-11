@@ -54,6 +54,7 @@ export async function addTextbook(formData: FormData): Promise<TbResult> {
   const title = String(formData.get('title') || '').trim();
   if (!title) return { ok: false, message: 'title' };
   const grade = text('grade');
+  const coverUrl = text('cover_url');
 
   // Nusxa nomerlari: har qatorda (yoki vergul/nuqta-vergul bilan) bittadan
   const numbers = String(formData.get('numbers') || '')
@@ -81,6 +82,7 @@ export async function addTextbook(formData: FormData): Promise<TbResult> {
         publisher: text('publisher'),
         publication_year: num('publication_year'),
         number: null,
+        cover_url: coverUrl,
         total_copies: 0,
         available_copies: 0,
       })
@@ -88,6 +90,9 @@ export async function addTextbook(formData: FormData): Promise<TbResult> {
       .single();
     if (error || !created) return { ok: false, message: error?.message ?? 'insert' };
     textbookId = created.id;
+  } else if (coverUrl) {
+    // Mavjud darslikka yangi muqova berilsa — yangilaymiz
+    await supabase.from('textbooks').update({ cover_url: coverUrl }).eq('id', textbookId);
   }
 
   // Nusxalarni yaratamiz

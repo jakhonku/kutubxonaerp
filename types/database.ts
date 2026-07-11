@@ -66,6 +66,7 @@ export interface Textbook {
   publisher: string | null;
   publication_year: number | null;
   number: string | null;
+  cover_url: string | null;
   total_copies: number;
   available_copies: number;
   created_at: string;

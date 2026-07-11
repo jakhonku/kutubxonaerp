@@ -150,3 +150,5 @@ create trigger trg_copy_counts
 
 -- Eski loan-asosli hisoblagich triggerini olib tashlaymiz (endi nusxalar boshqaradi)
 drop trigger if exists trg_textbook_copies on public.textbook_loans;
+
+alter table public.textbooks add column if not exists cover_url text;

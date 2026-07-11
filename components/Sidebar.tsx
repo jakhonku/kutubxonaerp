@@ -59,6 +59,7 @@ function itemsForRole(role: Role): NavItem[] {
   // student
   return [
     { href: '/student', labelKey: 'dashboard', icon: LayoutDashboard },
+    { href: '/student/textbooks', labelKey: 'myTextbooks', icon: BookCopy },
     physical,
     digital,
   ];
@@ -71,6 +72,7 @@ const LABELS: Record<string, string> = {
   loans: 'nav.loans',
   textbookFund: 'textbooks.fund',
   textbookDistribute: 'textbooks.distribute',
+  myTextbooks: 'textbooks.myTextbooks',
   reports: 'reports.title',
   students: 'nav.students',
   teachers: 'nav.teachers',
