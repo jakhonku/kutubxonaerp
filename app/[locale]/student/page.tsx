@@ -34,10 +34,23 @@ export default async function StudentDashboard() {
       <h1 className="mb-1 text-2xl font-bold text-stone-900">
         {t('home.getStarted')}, {profile.full_name}!
       </h1>
-      <p className="mb-6 text-stone-500">
-        {t('roles.student')}
-        {profile.class_name ? ` · ${profile.class_name}` : ''}
-      </p>
+      <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-stone-500">
+        <span>{t('roles.student')}</span>
+        {profile.class_name && (
+          <>
+            <span className="text-stone-300">·</span>
+            <span>{profile.class_name}</span>
+          </>
+        )}
+        {profile.login && (
+          <>
+            <span className="text-stone-300">·</span>
+            <span className="rounded-md bg-stone-100 px-2 py-0.5 font-mono text-xs text-stone-600">
+              ID: {profile.login}
+            </span>
+          </>
+        )}
+      </div>
 
       {/* Muddati o'tgan kitoblar ogohlantirishi */}
       {overdue.length > 0 && (

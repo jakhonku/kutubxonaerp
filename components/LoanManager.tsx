@@ -2,16 +2,20 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { issueLoan, returnLoan, renewLoan } from '@/app/[locale]/librarian/actions';
-import { RotateCcw, Send, CalendarPlus } from 'lucide-react';
+import { RotateCcw, Send, CalendarPlus, AlertCircle } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
+import SearchSelect, { type SelectOption } from './SearchSelect';
 import type { Book, LoanWithRelations, Profile } from '@/types/database';
 
 type LoanFilter = 'all' | 'active' | 'overdue' | 'returned';
 
+type StudentOpt = Pick<Profile, 'id' | 'full_name' | 'class_name' | 'login'>;
+type BookOpt = Pick<Book, 'id' | 'title' | 'isbn' | 'inventory_number'>;
+
 interface Props {
   loans: LoanWithRelations[];
-  students: Pick<Profile, 'id' | 'full_name' | 'class_name'>[];
-  availableBooks: Pick<Book, 'id' | 'title'>[];
+  students: StudentOpt[];
+  availableBooks: BookOpt[];
 }
 
 export default function LoanManager({ loans, students, availableBooks }: Props) {
@@ -19,11 +23,48 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   const format = useFormatter();
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<LoanFilter>('all');
+  const [issueError, setIssueError] = useState('');
+  const [formKey, setFormKey] = useState(0);
 
   // Standart muddat: 14 kundan keyin
   const defaultDue = new Date(Date.now() + 14 * 86400000)
     .toISOString()
     .slice(0, 10);
+
+  // Qidiruvli tanlash uchun variantlar
+  const studentOptions: SelectOption[] = useMemo(
+    () =>
+      students.map((s) => ({
+        id: s.id,
+        label: s.full_name,
+        sub: [s.class_name, s.login].filter(Boolean).join(' · '),
+        search: `${s.full_name} ${s.login ?? ''} ${s.class_name ?? ''}`.toLowerCase(),
+      })),
+    [students]
+  );
+
+  const bookOptions: SelectOption[] = useMemo(
+    () =>
+      availableBooks.map((b) => ({
+        id: b.id,
+        label: b.title,
+        sub: [b.isbn, b.inventory_number].filter(Boolean).join(' · '),
+        search: `${b.title} ${b.isbn ?? ''} ${b.inventory_number ?? ''}`.toLowerCase(),
+      })),
+    [availableBooks]
+  );
+
+  function handleIssue(fd: FormData) {
+    setIssueError('');
+    if (!fd.get('user_id') || !fd.get('book_id')) {
+      setIssueError(t('librarian.selectRequired'));
+      return;
+    }
+    startTransition(async () => {
+      await issueLoan(fd);
+      setFormKey((k) => k + 1); // formani tozalash uchun qayta yuklaymiz
+    });
+  }
 
   function handleReturn(id: string) {
     startTransition(() => returnLoan(id));
@@ -69,57 +110,64 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
 
   return (
     <div className="space-y-8">
-      {/* Kitob berish formasi */}
+      {/* Kitob berish formasi — qidiruvli tanlash */}
       <form
-        action={(fd) => startTransition(() => issueLoan(fd))}
-        className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-4"
+        key={formKey}
+        action={handleIssue}
+        className="rounded-2xl border border-stone-200 bg-white p-6"
       >
-        <label className="block sm:col-span-1">
-          <span className="mb-1 block text-sm font-medium text-stone-700">
-            {t('librarian.selectStudent')}
-          </span>
-          <select name="user_id" required className="fld">
-            <option value="">—</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.full_name}
-                {s.class_name ? ` (${s.class_name})` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <label className="block sm:col-span-1">
+            <span className="mb-1 block text-sm font-medium text-stone-700">
+              {t('librarian.selectStudent')}
+            </span>
+            <SearchSelect
+              name="user_id"
+              options={studentOptions}
+              placeholder={t('librarian.searchStudent')}
+              emptyText={t('common.noResults')}
+              resetKey={formKey}
+            />
+          </label>
 
-        <label className="block sm:col-span-1">
-          <span className="mb-1 block text-sm font-medium text-stone-700">
-            {t('librarian.selectBook')}
-          </span>
-          <select name="book_id" required className="fld">
-            <option value="">—</option>
-            {availableBooks.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.title}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="block sm:col-span-1">
+            <span className="mb-1 block text-sm font-medium text-stone-700">
+              {t('librarian.selectBook')}
+            </span>
+            <SearchSelect
+              name="book_id"
+              options={bookOptions}
+              placeholder={t('librarian.searchBook')}
+              emptyText={t('common.noResults')}
+              resetKey={formKey}
+            />
+          </label>
 
-        <label className="block sm:col-span-1">
-          <span className="mb-1 block text-sm font-medium text-stone-700">
-            {t('librarian.dueDate')}
-          </span>
-          <input name="due_date" type="date" required defaultValue={defaultDue} className="fld" />
-        </label>
+          <label className="block sm:col-span-1">
+            <span className="mb-1 block text-sm font-medium text-stone-700">
+              {t('librarian.dueDate')}
+            </span>
+            <input name="due_date" type="date" required defaultValue={defaultDue} className="fld" />
+          </label>
 
-        <div className="flex items-end">
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
-          >
-            <Send className="h-4 w-4" />
-            {t('librarian.issueBook')}
-          </button>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" />
+              {t('librarian.issueBook')}
+            </button>
+          </div>
         </div>
+
+        {issueError && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {issueError}
+          </div>
+        )}
       </form>
 
       {/* Holat bo'yicha filtr */}

@@ -26,12 +26,12 @@ export default async function LoansPage() {
         .order('borrowed_at', { ascending: false }),
       supabase
         .from('profiles')
-        .select('id,full_name,class_name')
+        .select('id,full_name,class_name,login')
         .eq('role', 'student')
         .order('full_name'),
       supabase
         .from('books')
-        .select('id,title')
+        .select('id,title,isbn,inventory_number')
         .eq('type', 'physical')
         .gt('available_copies', 0)
         .order('title'),
