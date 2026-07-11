@@ -14,6 +14,8 @@ import {
   Repeat,
   PlusCircle,
   BarChart3,
+  BookCopy,
+  PackageOpen,
   type LucideIcon,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -36,6 +38,8 @@ function itemsForRole(role: Role): NavItem[] {
       { href: '/librarian/books', labelKey: 'books', icon: BookMarked },
       { href: '/librarian/books/new', labelKey: 'addBook', icon: PlusCircle },
       { href: '/librarian/loans', labelKey: 'loans', icon: Repeat },
+      { href: '/librarian/textbooks', labelKey: 'textbookFund', icon: BookCopy },
+      { href: '/librarian/textbooks/distribute', labelKey: 'textbookDistribute', icon: PackageOpen },
       { href: '/librarian/reports', labelKey: 'reports', icon: BarChart3 },
       { href: '/librarian/students', labelKey: 'students', icon: GraduationCap },
       { href: '/librarian/teachers', labelKey: 'teachers', icon: Users },
@@ -65,6 +69,8 @@ const LABELS: Record<string, string> = {
   books: 'nav.books',
   addBook: 'librarian.addBook',
   loans: 'nav.loans',
+  textbookFund: 'textbooks.fund',
+  textbookDistribute: 'textbooks.distribute',
   reports: 'reports.title',
   students: 'nav.students',
   teachers: 'nav.teachers',

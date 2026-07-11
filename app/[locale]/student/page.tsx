@@ -19,11 +19,24 @@ export default async function StudentDashboard() {
 
   const t = await getTranslations();
   const supabase = await createClient();
-  const { data: loans } = await supabase
-    .from('loans')
-    .select('*, books(id,title,author), profiles(id,full_name,class_name)')
-    .eq('user_id', profile.id)
-    .order('borrowed_at', { ascending: false });
+  const [{ data: loans }, { data: textbooks }] = await Promise.all([
+    supabase
+      .from('loans')
+      .select('*, books(id,title,author), profiles(id,full_name,class_name)')
+      .eq('user_id', profile.id)
+      .order('borrowed_at', { ascending: false }),
+    supabase
+      .from('textbook_loans')
+      .select('id, textbooks(title,subject,number)')
+      .eq('student_id', profile.id)
+      .eq('status', 'given'),
+  ]);
+
+  const myTextbooks =
+    (textbooks as unknown as {
+      id: string;
+      textbooks: { title: string; subject: string | null; number: string | null } | null;
+    }[]) ?? [];
 
   const all = (loans as LoanWithRelations[]) ?? [];
   const active = all.filter((l) => l.status === 'active');
@@ -97,6 +110,33 @@ export default async function StudentDashboard() {
 
       <h2 className="mb-4 text-lg font-semibold text-stone-900">{t('nav.myBooks')}</h2>
       <MyLoans loans={all} />
+
+      {/* Darsliklarim (maktab dasturi kitoblari) */}
+      <h2 className="mb-4 mt-8 text-lg font-semibold text-stone-900">{t('textbooks.given')}</h2>
+      {myTextbooks.length === 0 ? (
+        <p className="text-stone-500">{t('textbooks.empty')}</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
+              <tr>
+                <th className="p-3 font-medium">{t('textbooks.bookTitle')}</th>
+                <th className="p-3 font-medium">{t('textbooks.subject')}</th>
+                <th className="p-3 font-medium">{t('textbooks.number')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {myTextbooks.map((tb) => (
+                <tr key={tb.id} className="hover:bg-stone-50">
+                  <td className="p-3 font-medium text-stone-900">{tb.textbooks?.title ?? '—'}</td>
+                  <td className="p-3 text-stone-600">{tb.textbooks?.subject ?? '—'}</td>
+                  <td className="p-3 font-mono text-stone-600">{tb.textbooks?.number ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </DashboardShell>
   );
 }

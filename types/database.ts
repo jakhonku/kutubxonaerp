@@ -55,6 +55,37 @@ export interface LoanWithRelations extends Loan {
   profiles: Pick<Profile, 'id' | 'full_name' | 'class_name'> | null;
 }
 
+export type TextbookLoanStatus = 'given' | 'returned';
+
+export interface Textbook {
+  id: string;
+  title: string;
+  subject: string | null;
+  grade: string | null;
+  author: string | null;
+  publisher: string | null;
+  publication_year: number | null;
+  number: string | null;
+  total_copies: number;
+  available_copies: number;
+  created_at: string;
+}
+
+export interface TextbookLoan {
+  id: string;
+  textbook_id: string;
+  student_id: string;
+  given_at: string;
+  returned_at: string | null;
+  status: TextbookLoanStatus;
+  academic_year: string | null;
+}
+
+export interface TextbookLoanWithRelations extends TextbookLoan {
+  textbooks: Pick<Textbook, 'id' | 'title' | 'subject' | 'grade' | 'number'> | null;
+  profiles: Pick<Profile, 'id' | 'full_name' | 'class_name'> | null;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -74,6 +105,18 @@ export interface Database {
         Row: Loan;
         Insert: Omit<Loan, 'id' | 'borrowed_at'> & { id?: string; borrowed_at?: string };
         Update: Partial<Loan>;
+        Relationships: [];
+      };
+      textbooks: {
+        Row: Textbook;
+        Insert: Omit<Textbook, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<Textbook>;
+        Relationships: [];
+      };
+      textbook_loans: {
+        Row: TextbookLoan;
+        Insert: Omit<TextbookLoan, 'id' | 'given_at'> & { id?: string; given_at?: string };
+        Update: Partial<TextbookLoan>;
         Relationships: [];
       };
     };
