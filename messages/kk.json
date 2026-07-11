@@ -111,6 +111,8 @@
     "availableCopies": "Қолжетімді даналар",
     "pdfUpload": "PDF файлды жүктеу",
     "pdfFile": "PDF файл",
+    "downloadAllow": "Жүктеп алуға рұқсат беру",
+    "downloadAllowHint": "Белгіленбесе — пайдаланушылар кітапты тек сайтта оқи алады, жүктей алмайды",
     "description": "Сипаттама",
     "publisher": "Баспа",
     "publicationYear": "Басылым жылы",

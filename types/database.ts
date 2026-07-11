@@ -25,6 +25,7 @@ export interface Book {
   total_copies: number;
   available_copies: number;
   pdf_url: string | null;
+  downloadable: boolean;
   description: string | null;
   // Koha uslubidagi qo'shimcha bibliografik maydonlar
   publisher: string | null;

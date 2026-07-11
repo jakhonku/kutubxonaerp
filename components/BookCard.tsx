@@ -68,7 +68,7 @@ export default function BookCard({ book }: { book: Book }) {
                 <BookOpen className="h-4 w-4" />
                 {t('read')}
               </Link>
-              {book.pdf_url && (
+              {book.pdf_url && book.downloadable && (
                 <a
                   href={book.pdf_url}
                   download

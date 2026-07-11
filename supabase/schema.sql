@@ -31,6 +31,7 @@ create table if not exists public.books (
   total_copies int default 1,
   available_copies int default 1,
   pdf_url text,
+  downloadable boolean default true,  -- PDF ni yuklab olishga ruxsat
   description text,
   -- Koha uslubidagi qo'shimcha bibliografik maydonlar
   publisher text,           -- Nashriyot
@@ -53,6 +54,7 @@ alter table public.books add column if not exists pages int;
 alter table public.books add column if not exists series text;
 alter table public.books add column if not exists call_number text;
 alter table public.books add column if not exists inventory_number text;
+alter table public.books add column if not exists downloadable boolean default true;
 
 create table if not exists public.loans (
   id uuid primary key default gen_random_uuid(),

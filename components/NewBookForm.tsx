@@ -15,6 +15,7 @@ export default function NewBookForm() {
 
   const [type, setType] = useState<BookType>('physical');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [downloadable, setDownloadable] = useState(true);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>('');
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +92,7 @@ export default function NewBookForm() {
         total_copies: totalCopies,
         available_copies: totalCopies,
         pdf_url: pdfUrl,
+        downloadable: type === 'ebook' ? downloadable : true,
         // Koha uslubidagi maydonlar
         publisher: text('publisher'),
         publication_year: num('publication_year'),
@@ -239,15 +241,35 @@ export default function NewBookForm() {
           </Field>
         </div>
       ) : (
-        <Field label={t('book.pdfUpload')}>
-          <input
-            type="file"
-            accept="application/pdf"
-            required
-            onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100"
-          />
-        </Field>
+        <div className="space-y-4">
+          <Field label={t('book.pdfUpload')}>
+            <input
+              type="file"
+              accept="application/pdf"
+              required
+              onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100"
+            />
+          </Field>
+
+          {/* Yuklab olishga ruxsat */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 p-3">
+            <input
+              type="checkbox"
+              checked={downloadable}
+              onChange={(e) => setDownloadable(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span>
+              <span className="block text-sm font-medium text-stone-800">
+                {t('book.downloadAllow')}
+              </span>
+              <span className="block text-xs text-stone-500">
+                {t('book.downloadAllowHint')}
+              </span>
+            </span>
+          </label>
+        </div>
       )}
 
       <Field label={t('book.description')}>

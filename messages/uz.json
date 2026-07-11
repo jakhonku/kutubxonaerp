@@ -111,6 +111,8 @@
     "availableCopies": "Mavjud nusxalar",
     "pdfUpload": "PDF faylni yuklash",
     "pdfFile": "PDF fayl",
+    "downloadAllow": "Yuklab olishga ruxsat berish",
+    "downloadAllowHint": "Belgilanmasa — foydalanuvchilar kitobni faqat saytda o'qiy oladi, yuklab ololmaydi",
     "description": "Tavsif",
     "publisher": "Nashriyot",
     "publicationYear": "Nashr yili",

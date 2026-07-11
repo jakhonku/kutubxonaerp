@@ -44,19 +44,22 @@ export default async function ReadBookPage({
           </Link>
           <h1 className="font-semibold text-stone-900">{book.title}</h1>
         </div>
-        <a
-          href={book.pdf_url}
-          download
-          className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
-        >
-          <Download className="h-4 w-4" />
-          {t('library.download')}
-        </a>
+        {book.downloadable && (
+          <a
+            href={book.pdf_url}
+            download
+            className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+          >
+            <Download className="h-4 w-4" />
+            {t('library.download')}
+          </a>
+        )}
       </header>
 
-      {/* PDF ko'rish — yengil iframe (Supabase Storage public URL) */}
+      {/* PDF ko'rish — yengil iframe. Yuklab olish taqiqlangan bo'lsa
+          brauzer PDF panelini (yuklash/chop etish) yashiramiz. */}
       <iframe
-        src={`${book.pdf_url}#toolbar=1&view=FitH`}
+        src={`${book.pdf_url}#toolbar=${book.downloadable ? 1 : 0}&view=FitH`}
         title={book.title}
         className="w-full flex-1"
       />
