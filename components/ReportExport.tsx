@@ -11,18 +11,22 @@ export interface ExportReport {
   rows: [string, number][];
 }
 
-// CSV maydonini xavfsiz o'rab qo'yish (vergul, qo'shtirnoq, yangi qator)
-function csvCell(v: string | number): string {
-  const s = String(v);
-  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+// Varaq nomini Excel qoidalariga moslash (≤31 belgi, taqiqlangan belgilarsiz, unikal)
+function sheetName(name: string, used: Set<string>): string {
+  const base = name.replace(/[\\/*?:[\]]/g, ' ').slice(0, 28).trim() || 'Hisobot';
+  let n = base;
+  let i = 2;
+  while (used.has(n)) n = `${base} ${i++}`.slice(0, 31);
+  used.add(n);
+  return n;
 }
 
 export default function ReportExport({ reports }: { reports: ExportReport[] }) {
   const t = useTranslations('reports');
-  // Standart: barcha hisobotlar tanlangan
   const [selected, setSelected] = useState<Record<string, boolean>>(
     Object.fromEntries(reports.map((r) => [r.id, true]))
   );
+  const [generating, setGenerating] = useState(false);
 
   function toggle(id: string) {
     setSelected((s) => ({ ...s, [id]: !s[id] }));
@@ -33,33 +37,71 @@ export default function ReportExport({ reports }: { reports: ExportReport[] }) {
     setSelected(Object.fromEntries(reports.map((r) => [r.id, !allOn])));
   }
 
-  function download() {
+  async function download() {
     const chosen = reports.filter((r) => selected[r.id]);
     if (chosen.length === 0) return;
+    setGenerating(true);
+    try {
+      // exceljs faqat bosilganda yuklanadi (asosiy paketni og'irlashtirmaydi)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mod: any = await import('exceljs');
+      const ExcelJS = mod.default ?? mod;
+      const wb = new ExcelJS.Workbook();
 
-    // ; ajratgich — Excel (ayniqsa rus/uzbek lokalida) ustunlarga to'g'ri bo'ladi
-    const sep = ';';
-    const lines: string[] = [];
-    for (const r of chosen) {
-      lines.push(csvCell(r.name));
-      lines.push(r.headers.map(csvCell).join(sep));
-      for (const [label, value] of r.rows) {
-        lines.push([csvCell(label), csvCell(value)].join(sep));
+      const thin = { style: 'thin', color: { argb: 'FFD6D3D1' } };
+      const border = { top: thin, left: thin, bottom: thin, right: thin };
+      const used = new Set<string>();
+
+      for (const r of chosen) {
+        const ws = wb.addWorksheet(sheetName(r.name, used));
+        ws.columns = [{ width: 38 }, { width: 16 }];
+
+        // Sarlavha (birlashtirilgan, yashil, qalin)
+        ws.mergeCells(1, 1, 1, 2);
+        const title = ws.getCell(1, 1);
+        title.value = r.name;
+        title.font = { bold: true, size: 14, color: { argb: 'FF1A5D3A' } };
+        title.alignment = { vertical: 'middle' };
+        ws.getRow(1).height = 26;
+
+        // Ustun boshlari (yashil fon, oq matn)
+        const header = ws.getRow(2);
+        header.values = r.headers;
+        header.height = 20;
+        header.eachCell((c: { font: unknown; fill: unknown; border: unknown; alignment: unknown }) => {
+          c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5D3A' } };
+          c.border = border;
+          c.alignment = { vertical: 'middle' };
+        });
+
+        // Ma'lumot qatorlari (chegaralar + zebra)
+        r.rows.forEach(([label, value], idx) => {
+          const row = ws.addRow([label, value]);
+          row.eachCell((c: { border: unknown; fill?: unknown }) => {
+            c.border = border;
+            if (idx % 2 === 1)
+              c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F4' } };
+          });
+          row.getCell(2).alignment = { horizontal: 'right' };
+        });
       }
-      lines.push(''); // bo'limlar orasida bo'sh qator
-    }
 
-    // ﻿ (BOM) — Excel UTF-8 ni to'g'ri o'qishi uchun (kirill/o'zbek harflari)
-    const csv = '﻿' + lines.join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kutubxona-hisoboti-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kutubxona-hisoboti-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -99,10 +141,11 @@ export default function ReportExport({ reports }: { reports: ExportReport[] }) {
 
       <button
         onClick={download}
-        className="mt-4 flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+        disabled={generating}
+        className="mt-4 flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
       >
         <Download className="h-4 w-4" />
-        {t('downloadExcel')}
+        {generating ? t('generating') : t('downloadExcel')}
       </button>
     </div>
   );
