@@ -26,7 +26,7 @@ export default async function DistributePage() {
     supabase.from('textbooks').select('*').order('subject'),
     supabase
       .from('textbook_loans')
-      .select('id,student_id,textbook_id,textbooks(title,subject,number)')
+      .select('id,student_id,textbook_id,textbooks(title,subject),textbook_copies(number)')
       .eq('status', 'given'),
   ]);
 

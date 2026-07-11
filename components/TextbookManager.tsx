@@ -16,8 +16,27 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [numbersText, setNumbersText] = useState('');
+  const [fromN, setFromN] = useState('');
+  const [toN, setToN] = useState('');
   const [isPending, startTransition] = useTransition();
+
+  const numbersCount = numbersText.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).length;
+
+  function generateRange() {
+    const a = parseInt(fromN, 10);
+    const b = parseInt(toN, 10);
+    if (isNaN(a) || isNaN(b) || b < a || b - a > 5000) return;
+    const lines: string[] = [];
+    for (let i = a; i <= b; i++) lines.push(String(i));
+    setNumbersText((prev) => {
+      const ex = prev.trim();
+      return ex ? ex + '\n' + lines.join('\n') : lines.join('\n');
+    });
+    setFromN('');
+    setToN('');
+  }
 
   const totalTitles = textbooks.length;
   const totalCopies = textbooks.reduce((s, b) => s + (b.total_copies ?? 0), 0);
@@ -37,12 +56,15 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
 
   function handleAdd(fd: FormData) {
     setError('');
-    setSuccess(false);
+    setSuccess('');
     startTransition(async () => {
       const res = await addTextbook(fd);
       if (res.ok) {
-        setSuccess(true);
+        setSuccess(t('addedN', { count: res.added ?? 0 }));
         formRef.current?.reset();
+        setNumbersText('');
+        setFromN('');
+        setToN('');
         router.refresh();
       } else {
         setError(res.message || tc('required'));
@@ -94,14 +116,6 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('number')}</span>
-          <input name="number" placeholder="0001" className="tfld" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('copies')}</span>
-          <input name="total_copies" type="number" min={1} defaultValue={1} className="tfld" />
-        </label>
-        <label className="block">
           <span className="mb-1 block text-sm font-medium text-stone-700">{t('author')}</span>
           <input name="author" className="tfld" />
         </label>
@@ -109,6 +123,47 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
           <span className="mb-1 block text-sm font-medium text-stone-700">{t('year')}</span>
           <input name="publication_year" type="number" min={0} max={2100} className="tfld" />
         </label>
+
+        {/* Nusxa nomerlari — diapazon yoki ro'yxat */}
+        <div className="rounded-lg border border-stone-200 p-4 sm:col-span-2 lg:col-span-4">
+          <span className="block text-sm font-medium text-stone-700">{t('numbersLabel')}</span>
+          <p className="mb-2 text-xs text-stone-500">{t('numbersHint')}</p>
+
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              value={fromN}
+              onChange={(e) => setFromN(e.target.value)}
+              placeholder={t('rangeFrom')}
+              className="tfld w-28"
+            />
+            <span className="text-stone-400">—</span>
+            <input
+              type="number"
+              value={toN}
+              onChange={(e) => setToN(e.target.value)}
+              placeholder={t('rangeTo')}
+              className="tfld w-28"
+            />
+            <button
+              type="button"
+              onClick={generateRange}
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              {t('rangeGen')}
+            </button>
+          </div>
+
+          <textarea
+            name="numbers"
+            value={numbersText}
+            onChange={(e) => setNumbersText(e.target.value)}
+            rows={4}
+            placeholder={t('numbersPlaceholder')}
+            className="tfld resize-y font-mono text-sm"
+          />
+          <p className="mt-1 text-xs text-stone-400">{t('numbersCount', { count: numbersCount })}</p>
+        </div>
 
         <div className="sm:col-span-2 lg:col-span-4">
           {error && (
@@ -120,7 +175,7 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
           {success && (
             <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              {tc('save')}
+              {success}
             </div>
           )}
           <button

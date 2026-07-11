@@ -23,7 +23,8 @@ interface GivenLoan {
   id: string;
   student_id: string;
   textbook_id: string;
-  textbooks: { title: string; subject: string | null; number: string | null } | null;
+  textbooks: { title: string; subject: string | null } | null;
+  textbook_copies: { number: string | null } | null;
 }
 
 interface Props {
@@ -226,9 +227,14 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-stone-900">
                           {h.textbooks?.title ?? '—'}
+                          {h.textbook_copies?.number ? (
+                            <span className="ml-1 font-mono text-xs text-brand-600">
+                              #{h.textbook_copies.number}
+                            </span>
+                          ) : null}
                         </p>
                         <p className="truncate text-xs text-stone-500">
-                          {[h.textbooks?.subject, h.textbooks?.number].filter(Boolean).join(' · ')}
+                          {h.textbooks?.subject ?? ''}
                         </p>
                       </div>
                       <button

@@ -71,9 +71,20 @@ export interface Textbook {
   created_at: string;
 }
 
+export type CopyStatus = 'available' | 'given';
+
+export interface TextbookCopy {
+  id: string;
+  textbook_id: string;
+  number: string | null;
+  status: CopyStatus;
+  created_at: string;
+}
+
 export interface TextbookLoan {
   id: string;
   textbook_id: string;
+  copy_id: string | null;
   student_id: string;
   given_at: string;
   returned_at: string | null;
@@ -117,6 +128,12 @@ export interface Database {
         Row: TextbookLoan;
         Insert: Omit<TextbookLoan, 'id' | 'given_at'> & { id?: string; given_at?: string };
         Update: Partial<TextbookLoan>;
+        Relationships: [];
+      };
+      textbook_copies: {
+        Row: TextbookCopy;
+        Insert: Omit<TextbookCopy, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<TextbookCopy>;
         Relationships: [];
       };
     };

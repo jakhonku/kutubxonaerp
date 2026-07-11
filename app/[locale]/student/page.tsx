@@ -27,7 +27,7 @@ export default async function StudentDashboard() {
       .order('borrowed_at', { ascending: false }),
     supabase
       .from('textbook_loans')
-      .select('id, textbooks(title,subject,number)')
+      .select('id, textbooks(title,subject), textbook_copies(number)')
       .eq('student_id', profile.id)
       .eq('status', 'given'),
   ]);
@@ -35,7 +35,8 @@ export default async function StudentDashboard() {
   const myTextbooks =
     (textbooks as unknown as {
       id: string;
-      textbooks: { title: string; subject: string | null; number: string | null } | null;
+      textbooks: { title: string; subject: string | null } | null;
+      textbook_copies: { number: string | null } | null;
     }[]) ?? [];
 
   const all = (loans as LoanWithRelations[]) ?? [];
@@ -130,7 +131,7 @@ export default async function StudentDashboard() {
                 <tr key={tb.id} className="hover:bg-stone-50">
                   <td className="p-3 font-medium text-stone-900">{tb.textbooks?.title ?? '—'}</td>
                   <td className="p-3 text-stone-600">{tb.textbooks?.subject ?? '—'}</td>
-                  <td className="p-3 font-mono text-stone-600">{tb.textbooks?.number ?? '—'}</td>
+                  <td className="p-3 font-mono text-stone-600">{tb.textbook_copies?.number ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
