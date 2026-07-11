@@ -1,8 +1,8 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
-import { issueLoan, returnLoan } from '@/app/[locale]/librarian/actions';
-import { RotateCcw, Send } from 'lucide-react';
+import { issueLoan, returnLoan, renewLoan } from '@/app/[locale]/librarian/actions';
+import { RotateCcw, Send, CalendarPlus } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import type { Book, LoanWithRelations, Profile } from '@/types/database';
 
@@ -27,6 +27,10 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
 
   function handleReturn(id: string) {
     startTransition(() => returnLoan(id));
+  }
+
+  function handleRenew(id: string) {
+    startTransition(() => renewLoan(id));
   }
 
   const isOverdue = (l: LoanWithRelations) =>
@@ -177,14 +181,25 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
                     </td>
                     <td className="p-3">
                       {loan.status === 'active' && (
-                        <button
-                          onClick={() => handleReturn(loan.id)}
-                          disabled={isPending}
-                          className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                          {t('librarian.returnBook')}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleReturn(loan.id)}
+                            disabled={isPending}
+                            className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            {t('librarian.returnBook')}
+                          </button>
+                          <button
+                            onClick={() => handleRenew(loan.id)}
+                            disabled={isPending}
+                            className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
+                            title={t('librarian.renew')}
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                            {t('librarian.renew')}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

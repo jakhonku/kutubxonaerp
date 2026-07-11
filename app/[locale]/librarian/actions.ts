@@ -59,6 +59,31 @@ export async function returnLoan(loanId: string) {
   revalidatePath('/librarian/loans');
 }
 
+// Ijara muddatini uzaytirish — joriy muddat (yoki bugundan) N kun qo'shiladi
+export async function renewLoan(loanId: string, days = 14) {
+  const supabase = await assertLibrarian();
+
+  const { data } = await supabase
+    .from('loans')
+    .select('due_date')
+    .eq('id', loanId)
+    .single();
+
+  const base = (data as { due_date?: string } | null)?.due_date
+    ? new Date((data as { due_date: string }).due_date)
+    : new Date();
+  // Muddat o'tib ketgan bo'lsa — bugundan boshlaymiz
+  const start = Math.max(base.getTime(), Date.now());
+  const newDue = new Date(start + days * 86400000).toISOString();
+
+  await supabase
+    .from('loans')
+    .update({ due_date: newDue, status: 'active' })
+    .eq('id', loanId);
+
+  revalidatePath('/librarian/loans');
+}
+
 export type ActionResult = {
   ok: boolean;
   error?: 'taken' | 'generic';

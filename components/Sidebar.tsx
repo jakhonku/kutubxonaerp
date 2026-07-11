@@ -13,6 +13,7 @@ import {
   UserCog,
   Repeat,
   PlusCircle,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -35,6 +36,7 @@ function itemsForRole(role: Role): NavItem[] {
       { href: '/librarian/books', labelKey: 'books', icon: BookMarked },
       { href: '/librarian/books/new', labelKey: 'addBook', icon: PlusCircle },
       { href: '/librarian/loans', labelKey: 'loans', icon: Repeat },
+      { href: '/librarian/reports', labelKey: 'reports', icon: BarChart3 },
       { href: '/librarian/students', labelKey: 'students', icon: GraduationCap },
       { href: '/librarian/teachers', labelKey: 'teachers', icon: Users },
       { href: '/librarian/users', labelKey: 'librarians', icon: UserCog },
@@ -63,6 +65,7 @@ const LABELS: Record<string, string> = {
   books: 'nav.books',
   addBook: 'librarian.addBook',
   loans: 'nav.loans',
+  reports: 'reports.title',
   students: 'nav.students',
   teachers: 'nav.teachers',
   librarians: 'nav.librarians',
