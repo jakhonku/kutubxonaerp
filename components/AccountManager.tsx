@@ -1,0 +1,288 @@
+'use client';
+
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
+import { createAccount, deleteAccount } from '@/app/[locale]/librarian/actions';
+import { CLASS_OPTIONS } from '@/lib/constants';
+import { UserPlus, Trash2, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react';
+import { useRef, useState, useTransition } from 'react';
+import type { Profile, Role } from '@/types/database';
+
+interface Props {
+  accounts: Profile[];
+  // Yaratiladigan hisob roli; 'student' bo'lsa sinf bilan va guruhlangan ko'rinish
+  mode: Role;
+}
+
+export default function AccountManager({ accounts, mode }: Props) {
+  const t = useTranslations('students');
+  const tc = useTranslations('common');
+  const locale = useLocale();
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const isStudent = mode === 'student';
+
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [filterClass, setFilterClass] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  function generatePassword() {
+    const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+    let p = '';
+    for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(p);
+  }
+
+  function handleSubmit(formData: FormData) {
+    setError('');
+    setSuccess(false);
+    formData.set('locale', locale);
+    formData.set('role', mode);
+    startTransition(async () => {
+      const res = await createAccount(formData);
+      if (res.ok) {
+        setSuccess(true);
+        setPassword('');
+        formRef.current?.reset();
+        router.refresh();
+      } else if (res.error === 'taken') {
+        setError(t('loginTaken'));
+      } else {
+        setError(res.message || tc('required'));
+      }
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm(t('confirmDelete'))) return;
+    startTransition(async () => {
+      await deleteAccount(id);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Yaratish formasi */}
+      <form
+        ref={formRef}
+        action={handleSubmit}
+        className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-2 lg:grid-cols-5"
+      >
+        <label className="block lg:col-span-2">
+          <span className="mb-1 block text-sm font-medium text-stone-700">
+            {t('fullName')}
+          </span>
+          <input name="full_name" required className="sfld" />
+        </label>
+
+        {isStudent && (
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">
+              {t('className')}
+            </span>
+            <select name="class_name" required defaultValue="" className="sfld">
+              <option value="" disabled>
+                —
+              </option>
+              {CLASS_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-stone-700">
+            {t('login')}
+          </span>
+          <input name="login" required autoComplete="off" className="sfld" />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-stone-700">
+            {t('password')}
+          </span>
+          <div className="flex gap-1">
+            <input
+              name="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="sfld"
+            />
+            <button
+              type="button"
+              onClick={generatePassword}
+              title={t('generate')}
+              className="shrink-0 rounded-lg border border-stone-200 px-2 text-stone-500 transition-colors hover:bg-stone-50"
+            >
+              <KeyRound className="h-4 w-4" />
+            </button>
+          </div>
+        </label>
+
+        <div className="sm:col-span-2 lg:col-span-5">
+          {error && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {t('created')}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+          >
+            <UserPlus className="h-4 w-4" />
+            {isStudent ? t('addStudent') : t('addStaff')}
+          </button>
+        </div>
+      </form>
+
+      {/* Sinf bo'yicha filtr (faqat o'quvchilar) */}
+      {isStudent && accounts.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-stone-500">{t('filterByClass')}:</span>
+          <select
+            value={filterClass}
+            onChange={(e) => setFilterClass(e.target.value)}
+            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">{tc('all')}</option>
+            {CLASS_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Ro'yxat */}
+      {accounts.length === 0 ? (
+        <p className="text-stone-500">{t('empty')}</p>
+      ) : isStudent ? (
+        <StudentGroups
+          accounts={
+            filterClass ? accounts.filter((a) => a.class_name === filterClass) : accounts
+          }
+          onDelete={handleDelete}
+          pending={isPending}
+        />
+      ) : (
+        <AccountTable rows={accounts} onDelete={handleDelete} pending={isPending} />
+      )}
+
+      <style jsx global>{`
+        .sfld {
+          width: 100%;
+          border-radius: 0.5rem;
+          border: 1px solid #e7e5e4;
+          padding: 0.5rem 0.75rem;
+          outline: none;
+          background: white;
+        }
+        .sfld:focus {
+          border-color: #2f7d52;
+          box-shadow: 0 0 0 2px #d4e9dd;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ---- O'quvchilar: sinflar bo'yicha guruhlangan ----
+function StudentGroups({
+  accounts,
+  onDelete,
+  pending,
+}: {
+  accounts: Profile[];
+  onDelete: (id: string) => void;
+  pending: boolean;
+}) {
+  const t = useTranslations('students');
+  const locale = useLocale();
+
+  const byClass = new Map<string, Profile[]>();
+  for (const s of accounts) {
+    const key = s.class_name?.trim() || t('noClass');
+    if (!byClass.has(key)) byClass.set(key, []);
+    byClass.get(key)!.push(s);
+  }
+  const classNames = Array.from(byClass.keys()).sort((a, b) => a.localeCompare(b, locale));
+
+  return (
+    <div className="space-y-6">
+      {classNames.map((cls) => (
+        <div key={cls}>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-stone-500">
+            {cls}
+            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
+              {byClass.get(cls)!.length}
+            </span>
+          </h3>
+          <AccountTable rows={byClass.get(cls)!} onDelete={onDelete} pending={pending} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AccountTable({
+  rows,
+  onDelete,
+  pending,
+}: {
+  rows: Profile[];
+  onDelete: (id: string) => void;
+  pending: boolean;
+}) {
+  const t = useTranslations('students');
+  const tc = useTranslations('common');
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+      <table className="w-full text-sm">
+        <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
+          <tr>
+            <th className="p-3 font-medium">{t('fullName')}</th>
+            <th className="p-3 font-medium">{t('login')}</th>
+            <th className="p-3 font-medium">{tc('actions')}</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {rows.map((s) => (
+            <tr key={s.id} className="hover:bg-stone-50">
+              <td className="p-3 font-medium text-stone-900">{s.full_name}</td>
+              <td className="p-3 font-mono text-stone-600">{s.login ?? '—'}</td>
+              <td className="p-3">
+                <button
+                  onClick={() => onDelete(s.id)}
+                  disabled={pending}
+                  className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                  title={tc('delete')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
