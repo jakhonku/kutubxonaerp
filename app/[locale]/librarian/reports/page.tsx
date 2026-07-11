@@ -7,6 +7,7 @@ import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import BarList from '@/components/BarList';
 import PrintButton from '@/components/PrintButton';
+import ReportExport, { type ExportReport } from '@/components/ReportExport';
 import { BookMarked, Layers, CheckCircle2, BookUp } from 'lucide-react';
 
 export default async function ReportsPage() {
@@ -110,6 +111,68 @@ export default async function ReportsPage() {
     librarian: profiles.filter((p) => p.role === 'librarian').length,
   };
 
+  // Excel (CSV) eksport uchun ma'lumot to'plamlari
+  const exportReports: ExportReport[] = [
+    {
+      id: 'overview',
+      name: t('overview'),
+      headers: [t('overview'), t('count')],
+      rows: [
+        [t('totalTitles'), totalTitles],
+        [t('totalCopies'), totalCopies],
+        [t('availableCopies'), availableCopies],
+        [t('borrowedCopies'), borrowedCopies],
+        [t('physical'), physicalCount],
+        [t('ebooks'), ebookCount],
+      ],
+    },
+    {
+      id: 'byCategory',
+      name: t('byCategory'),
+      headers: [t('category'), t('count')],
+      rows: byCategory.map((r) => [r.label, r.value] as [string, number]),
+    },
+    {
+      id: 'byLanguage',
+      name: t('byLanguage'),
+      headers: [t('byLanguage'), t('count')],
+      rows: byLanguage.map((r) => [r.label, r.value] as [string, number]),
+    },
+    {
+      id: 'loanStats',
+      name: t('loanStats'),
+      headers: [t('loanStats'), t('count')],
+      rows: [
+        [tl('active'), loanActive],
+        [tl('overdue'), loanOverdue],
+        [tl('returned'), loanReturned],
+        [t('count'), loanTotal],
+      ],
+    },
+    {
+      id: 'topBorrowed',
+      name: t('topBorrowed'),
+      headers: [t('topBorrowed'), t('times')],
+      rows: topBorrowed.map((r) => [r.label, r.value] as [string, number]),
+    },
+    {
+      id: 'byClass',
+      name: t('byClass'),
+      headers: [t('byClass'), t('count')],
+      rows: byClass.map((r) => [r.label, r.value] as [string, number]),
+    },
+    {
+      id: 'usersByRole',
+      name: t('usersByRole'),
+      headers: [t('usersByRole'), t('count')],
+      rows: [
+        [tr('student'), roleCount.student],
+        [tr('teacher'), roleCount.teacher],
+        [tr('librarian'), roleCount.librarian],
+      ],
+    },
+  ];
+
   return (
     <DashboardShell role="librarian">
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -121,6 +184,11 @@ export default async function ReportsPage() {
           </p>
         </div>
         <PrintButton />
+      </div>
+
+      {/* Excel (CSV) eksport — qaysi hisobotlarni tanlab yuklash */}
+      <div className="mb-8">
+        <ReportExport reports={exportReports} />
       </div>
 
       {/* Umumiy ko'rsatkichlar */}
