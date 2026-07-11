@@ -163,6 +163,8 @@
     "confirmDelete": "Ushbu hisobni o'chirishni xohlaysizmi?",
     "empty": "Hozircha hech kim yo'q",
     "noClass": "Sinfsiz",
+    "newClass": "Yangi sinf",
+    "fromList": "Ro'yxatdan tanlash",
     "filterByClass": "Sinf bo'yicha",
     "generate": "Avtomatik parol"
   },

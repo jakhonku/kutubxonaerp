@@ -95,19 +95,7 @@ export default function AccountManager({ accounts, mode }: Props) {
         {isStudent && (
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-            <input
-              name="class_name"
-              required
-              placeholder="2-A"
-              autoComplete="off"
-              list="class-list"
-              className="sfld"
-            />
-            <datalist id="class-list">
-              {existingClasses.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <ClassInput name="class_name" existingClasses={existingClasses} />
           </label>
         )}
 
@@ -206,6 +194,7 @@ export default function AccountManager({ accounts, mode }: Props) {
           account={editing}
           isStudent={isStudent}
           role={mode}
+          existingClasses={existingClasses}
           pending={isPending}
           onClose={() => setEditing(null)}
           onSave={(formData) => {
@@ -241,6 +230,76 @@ export default function AccountManager({ accounts, mode }: Props) {
           box-shadow: 0 0 0 2px #d4e9dd;
         }
       `}</style>
+    </div>
+  );
+}
+
+// ---- Sinf tanlash: mavjudlar ro'yxati + "Yangi sinf" ----
+function ClassInput({
+  name,
+  existingClasses,
+  defaultValue,
+}: {
+  name: string;
+  existingClasses: string[];
+  defaultValue?: string;
+}) {
+  const t = useTranslations('students');
+  const NEW = '__new__';
+  const [mode, setMode] = useState<'select' | 'new'>('select');
+
+  // Hech qanday sinf yo'q bo'lsa — to'g'ridan-to'g'ri matn kiritish
+  if (existingClasses.length === 0) {
+    return (
+      <input
+        name={name}
+        required
+        defaultValue={defaultValue}
+        placeholder="2-A"
+        autoComplete="off"
+        className="sfld"
+      />
+    );
+  }
+
+  return mode === 'select' ? (
+    <select
+      name={name}
+      required
+      defaultValue={defaultValue && existingClasses.includes(defaultValue) ? defaultValue : ''}
+      onChange={(e) => {
+        if (e.target.value === NEW) setMode('new');
+      }}
+      className="sfld"
+    >
+      <option value="" disabled>
+        —
+      </option>
+      {existingClasses.map((c) => (
+        <option key={c} value={c}>
+          {c}
+        </option>
+      ))}
+      <option value={NEW}>➕ {t('newClass')}</option>
+    </select>
+  ) : (
+    <div className="flex gap-1">
+      <input
+        name={name}
+        required
+        autoFocus
+        placeholder="2-A"
+        autoComplete="off"
+        className="sfld"
+      />
+      <button
+        type="button"
+        onClick={() => setMode('select')}
+        title={t('fromList')}
+        className="shrink-0 rounded-lg border border-stone-200 px-3 text-stone-500 transition-colors hover:bg-stone-50"
+      >
+        ↩
+      </button>
     </div>
   );
 }
@@ -352,6 +411,7 @@ function EditModal({
   account,
   isStudent,
   role,
+  existingClasses,
   pending,
   onClose,
   onSave,
@@ -361,6 +421,7 @@ function EditModal({
   account: Profile;
   isStudent: boolean;
   role: Role;
+  existingClasses: string[];
   pending: boolean;
   onClose: () => void;
   onSave: (formData: FormData) => void;
@@ -403,13 +464,10 @@ function EditModal({
           {isStudent && (
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-              <input
+              <ClassInput
                 name="class_name"
-                required
+                existingClasses={existingClasses}
                 defaultValue={account.class_name ?? ''}
-                placeholder="2-A"
-                autoComplete="off"
-                className="sfld"
               />
             </label>
           )}
