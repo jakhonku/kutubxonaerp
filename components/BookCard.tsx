@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { BookOpen, Download, MapPin } from 'lucide-react';
 import type { Book } from '@/types/database';
@@ -12,15 +11,15 @@ export default function BookCard({ book }: { book: Book }) {
 
   return (
     <div className="card-hover flex flex-col overflow-hidden rounded-xl border border-stone-200 bg-white">
-      {/* Muqova — Vercel avtomat siqadi va CDN'dan beradi */}
-      <div className="relative flex aspect-[3/4] items-center justify-center bg-stone-100">
+      {/* Muqova — to'g'ridan-to'g'ri (Supabase public URL) */}
+      <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-stone-100">
         {book.cover_url ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={book.cover_url}
             alt={book.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover"
+            className="h-full w-full object-cover"
+            loading="lazy"
           />
         ) : (
           <BookOpen className="h-12 w-12 text-stone-300" />
