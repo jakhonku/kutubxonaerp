@@ -111,6 +111,89 @@ export async function addTextbook(formData: FormData): Promise<TbResult> {
   return { ok: true, added: copyRows.length };
 }
 
+export interface ImportRow {
+  title: string;
+  grade: string;
+  author: string;
+  year: string;
+  number: string;
+}
+
+// Excel'dan import — har qator = bitta nusxa; (fan + sinf) bo'yicha guruhlanadi
+export async function importTextbooks(items: ImportRow[]): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+  if (!items?.length) return { ok: false, message: 'empty' };
+
+  type Group = {
+    title: string;
+    grade: string | null;
+    author: string | null;
+    year: number | null;
+    numbers: string[];
+  };
+  const groups = new Map<string, Group>();
+  for (const it of items) {
+    const title = (it.title || '').trim();
+    if (!title) continue;
+    const grade = (it.grade || '').trim() || null;
+    const key = `${title}||${grade ?? ''}`;
+    const g =
+      groups.get(key) ??
+      ({
+        title,
+        grade,
+        author: (it.author || '').trim() || null,
+        year: it.year ? Number(it.year) || null : null,
+        numbers: [],
+      } as Group);
+    g.numbers.push((it.number || '').trim());
+    groups.set(key, g);
+  }
+
+  let copiesAdded = 0;
+  for (const g of groups.values()) {
+    const { data: candidates } = await supabase
+      .from('textbooks')
+      .select('id,grade')
+      .eq('title', g.title);
+    const match = (candidates ?? []).find((c) => (c.grade ?? null) === (g.grade ?? null));
+
+    let textbookId = match?.id;
+    if (!textbookId) {
+      const { data: created, error } = await supabase
+        .from('textbooks')
+        .insert({
+          title: g.title,
+          grade: g.grade,
+          author: g.author,
+          publication_year: g.year,
+          subject: null,
+          number: null,
+          total_copies: 0,
+          available_copies: 0,
+        })
+        .select('id')
+        .single();
+      if (error || !created) return { ok: false, message: error?.message ?? 'insert' };
+      textbookId = created.id;
+    }
+
+    const copyRows = g.numbers.map((n) => ({
+      textbook_id: textbookId!,
+      number: n || null,
+      status: 'available' as const,
+    }));
+    if (copyRows.length > 0) {
+      const { error } = await supabase.from('textbook_copies').insert(copyRows);
+      if (error) return { ok: false, message: error.message };
+      copiesAdded += copyRows.length;
+    }
+  }
+
+  revalidatePath('/librarian/textbooks');
+  return { ok: true, added: copiesAdded };
+}
+
 export async function deleteTextbook(id: string): Promise<TbResult> {
   const supabase = await assertLibrarian();
   const { error } = await supabase.from('textbooks').delete().eq('id', id);

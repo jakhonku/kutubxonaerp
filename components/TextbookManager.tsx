@@ -2,9 +2,24 @@
 
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { addTextbook, deleteTextbook } from '@/app/[locale]/librarian/textbook-actions';
+import {
+  addTextbook,
+  deleteTextbook,
+  importTextbooks,
+  type ImportRow,
+} from '@/app/[locale]/librarian/textbook-actions';
 import StatCard from './StatCard';
-import { BookMarked, Layers, Send, CheckCircle2, Plus, Trash2, AlertCircle } from 'lucide-react';
+import {
+  BookMarked,
+  Layers,
+  Send,
+  CheckCircle2,
+  Plus,
+  Trash2,
+  AlertCircle,
+  FileDown,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { useRef, useState, useTransition } from 'react';
 import type { Textbook } from '@/types/database';
 
@@ -15,35 +30,18 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
   const tc = useTranslations('common');
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [numbersText, setNumbersText] = useState('');
-  const [fromN, setFromN] = useState('');
-  const [toN, setToN] = useState('');
+  const [importMsg, setImportMsg] = useState('');
+  const [importing, setImporting] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const numbersCount = numbersText.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).length;
-
-  function generateRange() {
-    const a = parseInt(fromN, 10);
-    const b = parseInt(toN, 10);
-    if (isNaN(a) || isNaN(b) || b < a || b - a > 5000) return;
-    const lines: string[] = [];
-    for (let i = a; i <= b; i++) lines.push(String(i));
-    setNumbersText((prev) => {
-      const ex = prev.trim();
-      return ex ? ex + '\n' + lines.join('\n') : lines.join('\n');
-    });
-    setFromN('');
-    setToN('');
-  }
 
   const totalTitles = textbooks.length;
   const totalCopies = textbooks.reduce((s, b) => s + (b.total_copies ?? 0), 0);
   const available = textbooks.reduce((s, b) => s + (b.available_copies ?? 0), 0);
   const distributed = totalCopies - available;
 
-  // Sinf bo'yicha guruhlash
   const byGrade = new Map<string, Textbook[]>();
   for (const b of textbooks) {
     const key = b.grade?.trim() || '—';
@@ -62,9 +60,6 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
       if (res.ok) {
         setSuccess(t('addedN', { count: res.added ?? 0 }));
         formRef.current?.reset();
-        setNumbersText('');
-        setFromN('');
-        setToN('');
         router.refresh();
       } else {
         setError(res.message || tc('required'));
@@ -80,6 +75,85 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
     });
   }
 
+  // Excel shablonini yaratib yuklab olish
+  async function downloadTemplate() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('exceljs');
+    const ExcelJS = mod.default ?? mod;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Darsliklar');
+    ws.columns = [
+      { header: t('subject'), key: 'title', width: 30 },
+      { header: t('grade'), key: 'grade', width: 10 },
+      { header: t('author'), key: 'author', width: 24 },
+      { header: t('year'), key: 'year', width: 12 },
+      { header: t('number'), key: 'number', width: 16 },
+    ];
+    ws.getRow(1).eachCell((c: { font: unknown; fill: unknown }) => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5D3A' } };
+    });
+    ws.addRow(['Ona tili', '7', 'Aliyev A.', '2020', '0001']);
+    ws.addRow(['Ona tili', '7', 'Aliyev A.', '2020', '0002']);
+    ws.addRow(['Matematika', '7', 'Valiyev V.', '2021', '1001']);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'darslik-shablon.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Excel faylni o'qib import qilish
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportMsg('');
+    setImporting(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mod: any = await import('exceljs');
+      const ExcelJS = mod.default ?? mod;
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await file.arrayBuffer());
+      const ws = wb.worksheets[0];
+      const items: ImportRow[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ws.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return; // sarlavha
+        const cell = (i: number) => String(row.getCell(i).value ?? '').trim();
+        const title = cell(1);
+        if (!title) return;
+        items.push({
+          title,
+          grade: cell(2),
+          author: cell(3),
+          year: cell(4),
+          number: cell(5),
+        });
+      });
+
+      if (items.length === 0) {
+        setImportMsg(t('importEmpty'));
+        return;
+      }
+      const res = await importTextbooks(items);
+      if (res.ok) {
+        setImportMsg(t('importDone', { count: res.added ?? 0 }));
+        router.refresh();
+      } else {
+        setImportMsg(res.message || tc('required'));
+      }
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Statistika */}
@@ -90,86 +164,52 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
         <StatCard label={t('statAvailable')} value={available} icon={CheckCircle2} accent="brand" />
       </div>
 
-      {/* Qo'shish formasi */}
-      <form
-        ref={formRef}
-        action={handleAdd}
-        className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <label className="block lg:col-span-2">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('subject')}</span>
-          <input name="title" required placeholder="Ona tili" className="tfld" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('grade')}</span>
-          <select name="grade" defaultValue="" className="tfld">
-            <option value="">—</option>
-            {GRADES.map((g) => (
-              <option key={g} value={g}>
-                {t('gradeShort', { grade: g })}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('author')}</span>
-          <input name="author" className="tfld" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('year')}</span>
-          <input name="publication_year" type="number" min={0} max={2100} className="tfld" />
-        </label>
-
-        {/* Nusxa nomerlari — diapazon yoki ro'yxat */}
-        <div className="rounded-lg border border-stone-200 p-4 sm:col-span-2 lg:col-span-4">
-          <span className="block text-sm font-medium text-stone-700">{t('numbersLabel')}</span>
-          <p className="mb-2 text-xs text-stone-500">{t('numbersHint')}</p>
-
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <input
-              type="number"
-              value={fromN}
-              onChange={(e) => setFromN(e.target.value)}
-              placeholder={t('rangeFrom')}
-              className="tfld w-28"
-            />
-            <span className="text-stone-400">—</span>
-            <input
-              type="number"
-              value={toN}
-              onChange={(e) => setToN(e.target.value)}
-              placeholder={t('rangeTo')}
-              className="tfld w-28"
-            />
-            <button
-              type="button"
-              onClick={generateRange}
-              className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-50"
-            >
-              {t('rangeGen')}
-            </button>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Qo'lda qo'shish (bittalab) */}
+        <form
+          ref={formRef}
+          action={handleAdd}
+          className="space-y-4 rounded-2xl border border-stone-200 bg-white p-6 lg:col-span-2"
+        >
+          <h2 className="font-semibold text-stone-900">{t('manualAdd')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('subject')}</span>
+              <input name="title" required placeholder="Ona tili" className="tfld" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('grade')}</span>
+              <select name="grade" defaultValue="" className="tfld">
+                <option value="">—</option>
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>
+                    {t('gradeShort', { grade: g })}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('number')}</span>
+              <input name="numbers" required placeholder="0001" className="tfld" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('author')}</span>
+              <input name="author" className="tfld" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-stone-700">{t('year')}</span>
+              <input name="publication_year" type="number" min={0} max={2100} className="tfld" />
+            </label>
           </div>
 
-          <textarea
-            name="numbers"
-            value={numbersText}
-            onChange={(e) => setNumbersText(e.target.value)}
-            rows={4}
-            placeholder={t('numbersPlaceholder')}
-            className="tfld resize-y font-mono text-sm"
-          />
-          <p className="mt-1 text-xs text-stone-400">{t('numbersCount', { count: numbersCount })}</p>
-        </div>
-
-        <div className="sm:col-span-2 lg:col-span-4">
           {error && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+            <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               {success}
             </div>
@@ -182,8 +222,42 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
             <Plus className="h-4 w-4" />
             {t('add')}
           </button>
+        </form>
+
+        {/* Excel orqali import */}
+        <div className="space-y-4 rounded-2xl border border-stone-200 bg-white p-6">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-brand-600" />
+            <h2 className="font-semibold text-stone-900">{t('excelImport')}</h2>
+          </div>
+          <p className="text-sm text-stone-500">{t('excelHint')}</p>
+
+          <button
+            type="button"
+            onClick={downloadTemplate}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+          >
+            <FileDown className="h-4 w-4" />
+            {t('downloadTemplate')}
+          </button>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('chooseFile')}</span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFile}
+              disabled={importing}
+              className="block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-60"
+            />
+          </label>
+
+          {importing && <p className="text-sm text-stone-500">{t('importing')}</p>}
+          {importMsg && (
+            <div className="rounded-lg bg-stone-50 p-3 text-sm text-stone-700">{importMsg}</div>
+          )}
         </div>
-      </form>
+      </div>
 
       {/* Sinf bo'yicha ro'yxat */}
       {textbooks.length === 0 ? (
