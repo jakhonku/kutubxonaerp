@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, storageKey } from '@/lib/utils';
 import { LANGUAGE_CODES } from '@/lib/constants';
 import { AlertCircle, Image as ImageIcon, X } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -49,7 +49,7 @@ export default function EditBookForm({ book }: { book: Book }) {
 
       // Yangi PDF tanlangan bo'lsa — yuklab, eski manzil o'rniga qo'yamiz
       if (book.type === 'ebook' && pdfFile) {
-        const path = `${crypto.randomUUID()}-${pdfFile.name}`;
+        const path = storageKey('pdfs', pdfFile.name, 'pdf');
         const { error: uploadError } = await supabase.storage
           .from('books')
           .upload(path, pdfFile, { contentType: 'application/pdf' });
@@ -62,7 +62,7 @@ export default function EditBookForm({ book }: { book: Book }) {
 
       // Yangi muqova rasmi tanlangan bo'lsa — yuklaymiz
       if (coverFile) {
-        const path = `covers/${crypto.randomUUID()}-${coverFile.name}`;
+        const path = storageKey('covers', coverFile.name, 'jpg');
         const { error: coverError } = await supabase.storage
           .from('books')
           .upload(path, coverFile, { contentType: coverFile.type });

@@ -1,3 +1,12 @@
+// Supabase Storage uchun XAVFSIZ kalit yaratadi.
+// Asl fayl nomini ISHLATMAYDI (maxsus belgilar/kirill "Invalid key" xatosi bermasin) —
+// faqat tasodifiy UUID + toza kengaytma.
+export function storageKey(folder: string, filename: string, fallbackExt: string): string {
+  const raw = filename.includes('.') ? filename.split('.').pop() ?? '' : '';
+  const ext = raw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || fallbackExt;
+  return `${folder}/${crypto.randomUUID()}.${ext}`;
+}
+
 // Har qanday xatodan o'qiladigan matn ajratib oladi.
 // Supabase xatolari (StorageError, PostgrestError) har xil shaklda keladi.
 export function getErrorMessage(err: unknown): string {
