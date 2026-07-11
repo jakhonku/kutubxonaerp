@@ -116,6 +116,77 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
+// Hisobni tahrirlash — F.I.Sh., login (=email), sinf va ixtiyoriy yangi parol.
+export async function updateAccount(formData: FormData): Promise<ActionResult> {
+  await assertLibrarian();
+
+  const userId = String(formData.get('user_id') || '');
+  const fullName = String(formData.get('full_name') || '').trim();
+  const className = String(formData.get('class_name') || '').trim();
+  const login = String(formData.get('login') || '').trim().toLowerCase();
+  const password = String(formData.get('password') || '');
+
+  const roleInput = String(formData.get('role') || 'student');
+  const role: Role = (['student', 'teacher', 'librarian'] as const).includes(
+    roleInput as Role
+  )
+    ? (roleInput as Role)
+    : 'student';
+
+  if (!userId || !fullName || !login) {
+    return { ok: false, error: 'generic' };
+  }
+  if (password && password.length < 6) {
+    return { ok: false, error: 'generic' };
+  }
+
+  const admin = createServiceClient();
+
+  // Auth yozuvини yangilaymiz (email = login@domain, metadata, ixtiyoriy parol)
+  const authUpdate: {
+    email: string;
+    email_confirm: boolean;
+    password?: string;
+    user_metadata: Record<string, unknown>;
+  } = {
+    email: loginToEmail(login),
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
+      role,
+      class_name: role === 'student' ? className : '',
+      login,
+    },
+  };
+  if (password) authUpdate.password = password;
+
+  const { error: authErr } = await admin.auth.admin.updateUserById(userId, authUpdate);
+  if (authErr) {
+    const taken = /already|registered|exists|duplicate/i.test(authErr.message);
+    return { ok: false, error: taken ? 'taken' : 'generic', message: authErr.message };
+  }
+
+  // Profil yozuvини yangilaymiz
+  const { error: profErr } = await admin
+    .from('profiles')
+    .update({
+      full_name: fullName,
+      login,
+      class_name: role === 'student' ? className || null : null,
+    })
+    .eq('id', userId);
+
+  if (profErr) {
+    const taken = /duplicate|unique/i.test(profErr.message);
+    return { ok: false, error: taken ? 'taken' : 'generic', message: profErr.message };
+  }
+
+  revalidatePath('/librarian/students');
+  revalidatePath('/librarian/teachers');
+  revalidatePath('/librarian/users');
+  return { ok: true };
+}
+
 // Hisobni o'chirish — auth foydalanuvchisi + profil (cascade)
 export async function deleteAccount(userId: string): Promise<ActionResult> {
   await assertLibrarian();
@@ -123,6 +194,7 @@ export async function deleteAccount(userId: string): Promise<ActionResult> {
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) return { ok: false, error: 'generic' };
   revalidatePath('/librarian/students');
+  revalidatePath('/librarian/teachers');
   revalidatePath('/librarian/users');
   return { ok: true };
 }

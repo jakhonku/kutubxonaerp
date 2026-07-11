@@ -145,6 +145,8 @@
     "librariansSubtitle": "Boshqa kutubxonachilar uchun login va parol yarating",
     "addStudent": "O'quvchi qo'shish",
     "addStaff": "Qo'shish",
+    "editTitle": "Hisobни tahrirlash",
+    "passwordKeep": "Bo'sh qoldirsangiz parol o'zgarmaydi",
     "role": "Rol",
     "fullName": "F.I.Sh.",
     "className": "Sinf",
