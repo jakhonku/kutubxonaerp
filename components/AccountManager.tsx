@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { createAccount, deleteAccount, updateAccount } from '@/app/[locale]/librarian/actions';
-import { CLASS_OPTIONS } from '@/lib/constants';
 import {
   UserPlus,
   Trash2,
@@ -13,7 +12,7 @@ import {
   KeyRound,
   X,
 } from 'lucide-react';
-import { useRef, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import type { Profile, Role } from '@/types/database';
 
 interface Props {
@@ -36,6 +35,14 @@ export default function AccountManager({ accounts, mode }: Props) {
   const [filterClass, setFilterClass] = useState('');
   const [editing, setEditing] = useState<Profile | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Mavjud sinflar (o'quvchilardan olinadi) — filtr uchun
+  const existingClasses = useMemo(
+    () =>
+      Array.from(new Set(accounts.map((a) => a.class_name?.trim()).filter(Boolean)))
+        .sort((a, b) => (a as string).localeCompare(b as string, undefined, { numeric: true })) as string[],
+    [accounts]
+  );
 
   function generatePassword(setter: (v: string) => void) {
     const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -88,16 +95,19 @@ export default function AccountManager({ accounts, mode }: Props) {
         {isStudent && (
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-            <select name="class_name" required defaultValue="" className="sfld">
-              <option value="" disabled>
-                —
-              </option>
-              {CLASS_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+            <input
+              name="class_name"
+              required
+              placeholder="2-A"
+              autoComplete="off"
+              list="class-list"
+              className="sfld"
+            />
+            <datalist id="class-list">
+              {existingClasses.map((c) => (
+                <option key={c} value={c} />
               ))}
-            </select>
+            </datalist>
           </label>
         )}
 
@@ -162,7 +172,7 @@ export default function AccountManager({ accounts, mode }: Props) {
             className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
           >
             <option value="">{tc('all')}</option>
-            {CLASS_OPTIONS.map((c) => (
+            {existingClasses.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -393,16 +403,14 @@ function EditModal({
           {isStudent && (
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-              <select name="class_name" required defaultValue={account.class_name ?? ''} className="sfld">
-                <option value="" disabled>
-                  —
-                </option>
-                {CLASS_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <input
+                name="class_name"
+                required
+                defaultValue={account.class_name ?? ''}
+                placeholder="2-A"
+                autoComplete="off"
+                className="sfld"
+              />
             </label>
           )}
 
