@@ -24,18 +24,36 @@ export default function LoginPage() {
     const email = identifier.includes('@') ? identifier.trim() : loginToEmail(identifier);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (authError) {
+    if (authError || !data.user) {
       setError(t('auth.loginError'));
       setLoading(false);
       return;
     }
 
-    router.replace('/dashboard');
+    // Rolni bir marta olib, to'g'ridan-to'g'ri kerakli panelga o'tamiz
+    // (ortiqcha /dashboard sakrashini olib tashlaymiz — tezroq).
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
+    const role = (profile as { role?: string } | null)?.role;
+    const target =
+      role === 'librarian'
+        ? '/librarian'
+        : role === 'teacher'
+          ? '/teacher'
+          : role === 'student'
+            ? '/student'
+            : '/dashboard';
+
+    router.replace(target);
     router.refresh();
   }
 

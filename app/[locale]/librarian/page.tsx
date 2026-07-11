@@ -8,7 +8,27 @@ import { BookMarked, Repeat, AlertTriangle, Users } from 'lucide-react';
 
 export default async function LibrarianDashboard() {
   const locale = await getLocale();
-  const profile = await getProfile();
+  const supabase = await createClient();
+  const nowIso = new Date().toISOString();
+
+  // Profil tekshiruvi va statistikани BIR VAQTDA (parallel) olamiz — tezroq.
+  const [
+    profile,
+    { count: totalBooks },
+    { count: activeLoans },
+    { count: overdue },
+    { count: totalUsers },
+  ] = await Promise.all([
+    getProfile(),
+    supabase.from('books').select('*', { count: 'exact', head: true }),
+    supabase.from('loans').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase
+      .from('loans')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .lt('due_date', nowIso),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+  ]);
 
   if (!profile || profile.role !== 'librarian') {
     redirect({ href: '/dashboard', locale });
@@ -16,24 +36,6 @@ export default async function LibrarianDashboard() {
   }
 
   const t = await getTranslations('librarian');
-  const supabase = await createClient();
-
-  const nowIso = new Date().toISOString();
-
-  const [{ count: totalBooks }, { count: activeLoans }, { count: overdue }, { count: totalUsers }] =
-    await Promise.all([
-      supabase.from('books').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('loans')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active'),
-      supabase
-        .from('loans')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .lt('due_date', nowIso),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-    ]);
 
   return (
     <DashboardShell role="librarian">
