@@ -32,7 +32,13 @@ function currentAcademicYear(): string {
   return now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
 }
 
-export type TbResult = { ok: boolean; message?: string; given?: number; added?: number };
+export type TbResult = {
+  ok: boolean;
+  message?: string;
+  given?: number;
+  added?: number;
+  returned?: number;
+};
 
 // Darslik qo'shish — umumiy maydonlar bir marta + nusxa nomerlari ro'yxati.
 // Bir xil (nom + sinf) mavjud bo'lsa — yangi nusxalar shunga qo'shiladi.
@@ -203,6 +209,46 @@ export async function giveSet(studentId: string): Promise<TbResult> {
 
   revalidatePath('/librarian/textbooks/distribute');
   return { ok: true, given };
+}
+
+// O'quv yili oxirida — sinfdan barcha darsliklarni qaytarib olish
+export async function returnClassTextbooks(className: string): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+  if (!className) return { ok: false, message: 'noclass' };
+
+  // Shu sinf o'quvchilari
+  const { data: students } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'student')
+    .eq('class_name', className);
+  const studentIds = (students ?? []).map((s) => s.id);
+  if (studentIds.length === 0) return { ok: true, returned: 0 };
+
+  // Ularning berilgan darsliklari
+  const { data: loans } = await supabase
+    .from('textbook_loans')
+    .select('id,copy_id')
+    .in('student_id', studentIds)
+    .eq('status', 'given');
+
+  const loanIds = (loans ?? []).map((l) => l.id);
+  const copyIds = (loans ?? [])
+    .map((l) => l.copy_id)
+    .filter((v): v is string => Boolean(v));
+  if (loanIds.length === 0) return { ok: true, returned: 0 };
+
+  await supabase
+    .from('textbook_loans')
+    .update({ status: 'returned', returned_at: new Date().toISOString() })
+    .in('id', loanIds);
+
+  if (copyIds.length > 0) {
+    await supabase.from('textbook_copies').update({ status: 'available' }).in('id', copyIds);
+  }
+
+  revalidatePath('/librarian/textbooks/distribute');
+  return { ok: true, returned: loanIds.length };
 }
 
 // Darslikni qaytarish — nusxa yana bo'sh bo'ladi

@@ -254,6 +254,9 @@
     "studentsTotal": "Jami o'quvchilar",
     "received": "Kitob oldi",
     "notReceived": "Olmadi",
+    "returnAll": "Qaytarib olish",
+    "confirmReturnAll": "{class} sinfidan barcha darsliklarni qaytarib olasizmi?",
+    "returnedN": "{count} ta darslik qaytarildi",
     "gradeShort": "{grade}-sinf"
   },
   "roles": {

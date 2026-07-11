@@ -6,9 +6,18 @@ import {
   giveTextbook,
   giveSet,
   returnTextbook,
+  returnClassTextbooks,
 } from '@/app/[locale]/librarian/textbook-actions';
 import SearchSelect, { type SelectOption } from './SearchSelect';
-import { BookPlus, PackagePlus, RotateCcw, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import {
+  BookPlus,
+  PackagePlus,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  Undo2,
+} from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import type { Textbook } from '@/types/database';
 
@@ -138,6 +147,18 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
     });
   }
 
+  function handleReturnClass(className: string) {
+    if (!window.confirm(t('confirmReturnAll', { class: className }))) return;
+    setMsg(null);
+    startTransition(async () => {
+      const res = await returnClassTextbooks(className);
+      if (res.ok) {
+        setMsg({ type: 'ok', text: t('returnedN', { count: res.returned ?? 0 }) });
+        refresh();
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Sinflar kesimida tarqatish holati */}
@@ -168,6 +189,7 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                   <th className="p-3 font-medium text-green-700">{t('received')}</th>
                   <th className="p-3 font-medium text-amber-700">{t('notReceived')}</th>
                   <th className="p-3 font-medium">%</th>
+                  <th className="p-3 font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -186,6 +208,19 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                           </div>
                           <span className="text-xs text-stone-500">{pct}%</span>
                         </div>
+                      </td>
+                      <td className="p-3">
+                        {c.cls !== '—' && c.received > 0 && (
+                          <button
+                            onClick={() => handleReturnClass(c.cls)}
+                            disabled={isPending}
+                            className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
+                            title={t('returnAll')}
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                            {t('returnAll')}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

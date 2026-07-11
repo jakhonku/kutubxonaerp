@@ -254,6 +254,9 @@
     "studentsTotal": "Барлық оқушылар",
     "received": "Кітап алды",
     "notReceived": "Алмады",
+    "returnAll": "Қайтарып алу",
+    "confirmReturnAll": "{class} сыныбынан барлық оқулықтарды қайтарып аласыз ба?",
+    "returnedN": "{count} оқулық қайтарылды",
     "gradeShort": "{grade}-сынып"
   },
   "roles": {
