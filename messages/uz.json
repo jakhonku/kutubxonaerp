@@ -90,6 +90,10 @@
     "borrowedAt": "Berilgan sana",
     "issued": "Kitob berildi",
     "returned": "Qaytarildi",
+    "quickActions": "Tezkor amallar",
+    "overdueBooks": "Muddati o'tgan kitoblar",
+    "noOverdue": "Muddati o'tgan kitob yo'q",
+    "recentLoans": "So'nggi berilgan kitoblar",
     "confirmDelete": "Ushbu kitobni o'chirishni xohlaysizmi?",
     "stats": {
       "totalBooks": "Jami kitoblar",
