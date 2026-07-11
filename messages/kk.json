@@ -250,6 +250,10 @@
     "statCopies": "Барлық даналар",
     "statDistributed": "Таратылған",
     "statAvailable": "Қолжетімді",
+    "dashboardTitle": "Тарату жағдайы (сыныптар бөлінісінде)",
+    "studentsTotal": "Барлық оқушылар",
+    "received": "Кітап алды",
+    "notReceived": "Алмады",
     "gradeShort": "{grade}-сынып"
   },
   "roles": {

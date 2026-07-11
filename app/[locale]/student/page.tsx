@@ -121,7 +121,6 @@ export default async function StudentDashboard() {
           <table className="w-full text-sm">
             <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
               <tr>
-                <th className="p-3 font-medium">{t('textbooks.bookTitle')}</th>
                 <th className="p-3 font-medium">{t('textbooks.subject')}</th>
                 <th className="p-3 font-medium">{t('textbooks.number')}</th>
               </tr>
@@ -130,7 +129,6 @@ export default async function StudentDashboard() {
               {myTextbooks.map((tb) => (
                 <tr key={tb.id} className="hover:bg-stone-50">
                   <td className="p-3 font-medium text-stone-900">{tb.textbooks?.title ?? '—'}</td>
-                  <td className="p-3 text-stone-600">{tb.textbooks?.subject ?? '—'}</td>
                   <td className="p-3 font-mono text-stone-600">{tb.textbook_copies?.number ?? '—'}</td>
                 </tr>
               ))}

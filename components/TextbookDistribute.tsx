@@ -77,6 +77,27 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
     [textbooks, grade]
   );
 
+  // ---- Sinflar kesimida tarqatish holati (dashboard) ----
+  const receivedSet = useMemo(
+    () => new Set(givenLoans.map((l) => l.student_id)),
+    [givenLoans]
+  );
+  const classStats = useMemo(() => {
+    const map = new Map<string, { total: number; received: number }>();
+    for (const s of students) {
+      const key = s.class_name?.trim() || '—';
+      const cur = map.get(key) ?? { total: 0, received: 0 };
+      cur.total += 1;
+      if (receivedSet.has(s.id)) cur.received += 1;
+      map.set(key, cur);
+    }
+    return Array.from(map.entries())
+      .map(([cls, v]) => ({ cls, total: v.total, received: v.received, notReceived: v.total - v.received }))
+      .sort((a, b) => a.cls.localeCompare(b.cls, undefined, { numeric: true }));
+  }, [students, receivedSet]);
+  const totalStudents = students.length;
+  const totalReceived = students.filter((s) => receivedSet.has(s.id)).length;
+
   function refresh() {
     router.refresh();
   }
@@ -119,6 +140,62 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
 
   return (
     <div className="space-y-6">
+      {/* Sinflar kesimida tarqatish holati */}
+      <div className="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 className="mb-4 font-semibold text-stone-900">{t('dashboardTitle')}</h2>
+        <div className="mb-4 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-stone-200 p-4">
+            <p className="text-sm text-stone-500">{t('studentsTotal')}</p>
+            <p className="mt-1 text-2xl font-bold text-stone-900">{totalStudents}</p>
+          </div>
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <p className="text-sm text-green-700">{t('received')}</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{totalReceived}</p>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-700">{t('notReceived')}</p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">{totalStudents - totalReceived}</p>
+          </div>
+        </div>
+
+        {classStats.length > 0 && (
+          <div className="overflow-x-auto rounded-xl border border-stone-200">
+            <table className="w-full text-sm">
+              <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
+                <tr>
+                  <th className="p-3 font-medium">{t('grade')}</th>
+                  <th className="p-3 font-medium">{t('studentsTotal')}</th>
+                  <th className="p-3 font-medium text-green-700">{t('received')}</th>
+                  <th className="p-3 font-medium text-amber-700">{t('notReceived')}</th>
+                  <th className="p-3 font-medium">%</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {classStats.map((c) => {
+                  const pct = c.total ? Math.round((c.received / c.total) * 100) : 0;
+                  return (
+                    <tr key={c.cls} className="hover:bg-stone-50">
+                      <td className="p-3 font-medium text-stone-900">{c.cls}</td>
+                      <td className="p-3 text-stone-600">{c.total}</td>
+                      <td className="p-3 font-medium text-green-700">{c.received}</td>
+                      <td className="p-3 font-medium text-amber-700">{c.notReceived}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 overflow-hidden rounded-full bg-stone-100">
+                            <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-stone-500">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* O'quvchi tanlash */}
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
         <span className="mb-1 block text-sm font-medium text-stone-700">{t('selectStudent')}</span>
@@ -190,7 +267,7 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-stone-900">{b.title}</p>
                           <p className="truncate text-xs text-stone-500">
-                            {[b.subject, b.number].filter(Boolean).join(' · ')} · {b.available_copies}/{b.total_copies}
+                            {t('available')}: {b.available_copies}/{b.total_copies}
                           </p>
                         </div>
                         <button
@@ -232,9 +309,6 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                               #{h.textbook_copies.number}
                             </span>
                           ) : null}
-                        </p>
-                        <p className="truncate text-xs text-stone-500">
-                          {h.textbooks?.subject ?? ''}
                         </p>
                       </div>
                       <button

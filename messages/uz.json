@@ -250,6 +250,10 @@
     "statCopies": "Jami nusxalar",
     "statDistributed": "Tarqatilgan",
     "statAvailable": "Mavjud",
+    "dashboardTitle": "Tarqatish holati (sinflar kesimida)",
+    "studentsTotal": "Jami o'quvchilar",
+    "received": "Kitob oldi",
+    "notReceived": "Olmadi",
     "gradeShort": "{grade}-sinf"
   },
   "roles": {

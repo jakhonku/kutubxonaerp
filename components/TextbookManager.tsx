@@ -97,12 +97,8 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
         className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-2 lg:grid-cols-4"
       >
         <label className="block lg:col-span-2">
-          <span className="mb-1 block text-sm font-medium text-stone-700">{t('bookTitle')}</span>
-          <input name="title" required className="tfld" />
-        </label>
-        <label className="block">
           <span className="mb-1 block text-sm font-medium text-stone-700">{t('subject')}</span>
-          <input name="subject" placeholder="Matematika" className="tfld" />
+          <input name="title" required placeholder="Ona tili" className="tfld" />
         </label>
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-stone-700">{t('grade')}</span>
@@ -203,9 +199,7 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
                 <table className="w-full text-sm">
                   <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
                     <tr>
-                      <th className="p-3 font-medium">{t('bookTitle')}</th>
                       <th className="p-3 font-medium">{t('subject')}</th>
-                      <th className="p-3 font-medium">{t('number')}</th>
                       <th className="p-3 font-medium">{t('available')}</th>
                       <th className="p-3 font-medium">{tc('actions')}</th>
                     </tr>
@@ -214,8 +208,6 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
                     {byGrade.get(g)!.map((b) => (
                       <tr key={b.id} className="hover:bg-stone-50">
                         <td className="p-3 font-medium text-stone-900">{b.title}</td>
-                        <td className="p-3 text-stone-600">{b.subject ?? '—'}</td>
-                        <td className="p-3 font-mono text-stone-600">{b.number ?? '—'}</td>
                         <td className="p-3 text-stone-600">
                           {b.available_copies} / {b.total_copies}
                         </td>
