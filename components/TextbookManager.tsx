@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import {
   addTextbook,
   deleteTextbook,
+  updateTextbook,
   importTextbooks,
   type ImportRow,
 } from '@/app/[locale]/librarian/textbook-actions';
@@ -17,6 +18,7 @@ import {
   Send,
   CheckCircle2,
   Plus,
+  Pencil,
   Trash2,
   AlertCircle,
   FileDown,
@@ -43,6 +45,7 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
   const [coverPreview, setCoverPreview] = useState('');
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [editing, setEditing] = useState<Textbook | null>(null);
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -106,6 +109,35 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
     startTransition(async () => {
       await deleteTextbook(id);
       router.refresh();
+    });
+  }
+
+  const [editError, setEditError] = useState('');
+
+  function handleUpdate(fd: FormData, cover: File | null) {
+    setEditError('');
+    startTransition(async () => {
+      try {
+        // Yangi muqova tanlansa — avval Storage'ga yuklaymiz
+        if (cover) {
+          const supabase = createClient();
+          const path = storageKey('covers', cover.name, 'jpg');
+          const { error: upErr } = await supabase.storage
+            .from('books')
+            .upload(path, cover, { contentType: cover.type });
+          if (upErr) throw upErr;
+          fd.set('cover_url', supabase.storage.from('books').getPublicUrl(path).data.publicUrl);
+        }
+        const res = await updateTextbook(fd);
+        if (res.ok) {
+          setEditing(null);
+          router.refresh();
+        } else {
+          setEditError(res.message || tc('required'));
+        }
+      } catch (err) {
+        setEditError(getErrorMessage(err));
+      }
     });
   }
 
@@ -357,21 +389,36 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
                                 <img src={b.cover_url} alt="" className="h-full w-full object-cover" />
                               ) : null}
                             </div>
-                            <span className="font-medium text-stone-900">{b.title}</span>
+                            <Link
+                              href={`/librarian/textbooks/${b.id}`}
+                              className="font-medium text-stone-900 hover:text-brand-700 hover:underline"
+                            >
+                              {b.title}
+                            </Link>
                           </div>
                         </td>
                         <td className="p-3 text-stone-600">
                           {b.available_copies} / {b.total_copies}
                         </td>
                         <td className="p-3">
-                          <button
-                            onClick={() => handleDelete(b.id)}
-                            disabled={isPending}
-                            className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                            title={tc('delete')}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setEditing(b)}
+                              disabled={isPending}
+                              className="rounded-lg p-2 text-stone-600 transition-colors hover:bg-stone-100 disabled:opacity-50"
+                              title={tc('edit')}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(b.id)}
+                              disabled={isPending}
+                              className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                              title={tc('delete')}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -381,6 +428,20 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
             </div>
           ))}
         </div>
+      )}
+
+      {/* Tahrirlash oynasi */}
+      {editing && (
+        <EditTextbookModal
+          textbook={editing}
+          pending={isPending}
+          error={editError}
+          onClose={() => {
+            setEditing(null);
+            setEditError('');
+          }}
+          onSave={handleUpdate}
+        />
       )}
 
       <style jsx global>{`
@@ -397,6 +458,137 @@ export default function TextbookManager({ textbooks }: { textbooks: Textbook[] }
           box-shadow: 0 0 0 2px #d4e9dd;
         }
       `}</style>
+    </div>
+  );
+}
+
+// ---- Darslikni tahrirlash oynasi (modal) ----
+function EditTextbookModal({
+  textbook,
+  pending,
+  error,
+  onClose,
+  onSave,
+}: {
+  textbook: Textbook;
+  pending: boolean;
+  error: string;
+  onClose: () => void;
+  onSave: (fd: FormData, cover: File | null) => void;
+}) {
+  const t = useTranslations('textbooks');
+  const tc = useTranslations('common');
+  const [cover, setCover] = useState<File | null>(null);
+  const [preview, setPreview] = useState(textbook.cover_url ?? '');
+
+  function submit(fd: FormData) {
+    fd.set('id', textbook.id);
+    onSave(fd, cover);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <form
+        action={submit}
+        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-stone-900">{t('editTitle')}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('subject')}</span>
+            <input name="title" required defaultValue={textbook.title} className="tfld" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('grade')}</span>
+            <select name="grade" defaultValue={textbook.grade ?? ''} className="tfld">
+              <option value="">—</option>
+              {GRADES.map((g) => (
+                <option key={g} value={g}>
+                  {t('gradeShort', { grade: g })}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('author')}</span>
+            <input name="author" defaultValue={textbook.author ?? ''} className="tfld" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('publisher')}</span>
+            <input name="publisher" defaultValue={textbook.publisher ?? ''} className="tfld" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('year')}</span>
+            <input
+              name="publication_year"
+              type="number"
+              min={0}
+              max={2100}
+              defaultValue={textbook.publication_year ?? ''}
+              className="tfld"
+            />
+          </label>
+
+          {/* Muqova (ixtiyoriy almashtirish) */}
+          <div className="block sm:col-span-2">
+            <span className="mb-1 block text-sm font-medium text-stone-700">{t('cover')}</span>
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
+                {preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-stone-300" />
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setCover(f);
+                  setPreview(f ? URL.createObjectURL(f) : textbook.cover_url ?? '');
+                }}
+                className="block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+          >
+            {tc('save')}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-stone-200 px-5 py-2.5 font-medium text-stone-600 transition-colors hover:bg-stone-50"
+          >
+            {tc('cancel')}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

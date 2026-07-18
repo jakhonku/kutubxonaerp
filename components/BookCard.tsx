@@ -8,6 +8,8 @@ import type { Book } from '@/types/database';
 export default function BookCard({ book }: { book: Book }) {
   const t = useTranslations('library');
   const available = book.available_copies > 0;
+  const total = book.total_copies ?? 0;
+  const taken = Math.max(total - (book.available_copies ?? 0), 0);
 
   return (
     <div className="card-hover flex flex-col overflow-hidden rounded-xl border border-stone-200 bg-white">
@@ -46,17 +48,24 @@ export default function BookCard({ book }: { book: Book }) {
                   {t('shelf')}: <span className="font-medium">{book.shelf_location}</span>
                 </p>
               )}
-              <span
-                className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
-                  available
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {available
-                  ? t('copiesAvailable', { count: book.available_copies })
-                  : t('unavailable')}
-              </span>
+              {/* Nusxa hisobi: jami / mavjud / olingan */}
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-block rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
+                  {t('totalCopies')}: {total}
+                </span>
+                <span
+                  className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
+                    available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {available ? t('copiesAvailable', { count: book.available_copies }) : t('unavailable')}
+                </span>
+                {taken > 0 && (
+                  <span className="inline-block rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    {t('takenCount', { count: taken })}
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex gap-2">

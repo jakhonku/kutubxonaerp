@@ -16,6 +16,11 @@ import {
   BarChart3,
   BookCopy,
   PackageOpen,
+  ClipboardList,
+  BookText,
+  Search,
+  X,
+  ScanLine,
   type LucideIcon,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -37,6 +42,9 @@ function itemsForRole(role: Role): NavItem[] {
       { href: '/librarian', labelKey: 'dashboard', icon: LayoutDashboard },
       { href: '/librarian/books', labelKey: 'books', icon: BookMarked },
       { href: '/librarian/books/new', labelKey: 'addBook', icon: PlusCircle },
+      { href: '/librarian/issue', labelKey: 'qrIssue', icon: ScanLine },
+      { href: '/librarian/inventory', labelKey: 'inventory', icon: ClipboardList },
+      { href: '/librarian/summary', labelKey: 'summary', icon: BookText },
       { href: '/librarian/loans', labelKey: 'loans', icon: Repeat },
       { href: '/librarian/textbooks', labelKey: 'textbookFund', icon: BookCopy },
       { href: '/librarian/textbooks/distribute', labelKey: 'textbookDistribute', icon: PackageOpen },
@@ -48,8 +56,11 @@ function itemsForRole(role: Role): NavItem[] {
       digital,
     ];
   }
+  const search: NavItem = { href: '/search', labelKey: 'search', icon: Search };
+
   if (role === 'teacher') {
     return [
+      search,
       { href: '/teacher', labelKey: 'dashboard', icon: LayoutDashboard },
       physical,
       digital,
@@ -58,6 +69,7 @@ function itemsForRole(role: Role): NavItem[] {
   }
   // student
   return [
+    search,
     { href: '/student', labelKey: 'dashboard', icon: LayoutDashboard },
     { href: '/student/textbooks', labelKey: 'myTextbooks', icon: BookCopy },
     physical,
@@ -66,9 +78,13 @@ function itemsForRole(role: Role): NavItem[] {
 }
 
 const LABELS: Record<string, string> = {
+  search: 'search.nav',
   dashboard: 'nav.dashboard',
   books: 'nav.books',
   addBook: 'librarian.addBook',
+  qrIssue: 'qr.navIssue',
+  inventory: 'inventory.title',
+  summary: 'summary.title',
   loans: 'nav.loans',
   textbookFund: 'textbooks.fund',
   textbookDistribute: 'textbooks.distribute',
@@ -82,16 +98,32 @@ const LABELS: Record<string, string> = {
   myBooks: 'nav.myBooks',
 };
 
-export default function Sidebar({ role }: { role: Role }) {
+export default function Sidebar({
+  role,
+  onNavigate,
+}: {
+  role: Role;
+  onNavigate?: () => void;
+}) {
   const t = useTranslations();
   const pathname = usePathname();
   const items = itemsForRole(role);
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-stone-200 bg-white p-4">
+    <aside className="flex h-full min-h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-white p-4">
       <div className="mb-6 flex items-center gap-2 px-2">
-        <Library className="h-7 w-7 text-brand-600" />
+        <Library className="h-7 w-7 shrink-0 text-brand-600" />
         <span className="text-lg font-bold text-stone-900">{t('common.appName')}</span>
+        {/* Mobil: drawer'ni yopish */}
+        {onNavigate && (
+          <button
+            onClick={onNavigate}
+            aria-label="Close"
+            className="ml-auto rounded-lg p-1.5 text-stone-500 hover:bg-stone-100 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <p className="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-stone-400">
@@ -106,6 +138,7 @@ export default function Sidebar({ role }: { role: Role }) {
             <Link
               key={`${item.href}-${i}`}
               href={item.href}
+              onClick={onNavigate}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                 active
                   ? 'bg-brand-50 font-medium text-brand-700'

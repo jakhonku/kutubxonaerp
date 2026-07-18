@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import BookBrowser from '@/components/BookBrowser';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function DigitalLibraryPage() {
   const locale = await getLocale();
   const profile = await getProfile();

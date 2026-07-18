@@ -6,6 +6,9 @@ import DashboardShell from '@/components/DashboardShell';
 import LoanManager from '@/components/LoanManager';
 import type { LoanWithRelations } from '@/types/database';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function LoansPage() {
   const locale = await getLocale();
   const profile = await getProfile();

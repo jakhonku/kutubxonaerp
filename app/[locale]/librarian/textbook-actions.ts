@@ -207,6 +207,41 @@ export async function deleteTextbook(id: string): Promise<TbResult> {
   return { ok: true };
 }
 
+// Darslikni tahrirlash — fan nomi, sinf, muallif, nashriyot, yil va (ixtiyoriy) muqova.
+// Nusxalar (total/available) bu yerda o'zgartirilmaydi — ular nusxalar jadvalidan boshqariladi.
+export async function updateTextbook(formData: FormData): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+
+  const id = String(formData.get('id') || '');
+  if (!id) return { ok: false, message: 'id' };
+
+  const title = String(formData.get('title') || '').trim();
+  if (!title) return { ok: false, message: 'title' };
+
+  const text = (n: string) => String(formData.get(n) || '').trim() || null;
+  const num = (n: string) => {
+    const v = String(formData.get(n) || '').trim();
+    return v ? Number(v) || null : null;
+  };
+
+  const update: Record<string, unknown> = {
+    title,
+    grade: text('grade'),
+    author: text('author'),
+    publisher: text('publisher'),
+    publication_year: num('publication_year'),
+  };
+  // Muqova faqat yangisi berilsa yangilanadi
+  const coverUrl = text('cover_url');
+  if (coverUrl) update.cover_url = coverUrl;
+
+  const { error } = await supabase.from('textbooks').update(update).eq('id', id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/librarian/textbooks');
+  return { ok: true };
+}
+
 // Bitta darslikni (mavjud nusxalardan birini) o'quvchiga berish
 export async function giveTextbook(textbookId: string, studentId: string): Promise<TbResult> {
   const supabase = await assertLibrarian();
@@ -361,4 +396,187 @@ export async function returnTextbook(loanId: string): Promise<TbResult> {
 
   revalidatePath('/librarian/textbooks/distribute');
   return { ok: true };
+}
+
+// ============================================================
+// NUSXA (nomer) DARAJASIDAGI BOSHQARUV
+// ============================================================
+
+// Darslikka nusxa raqamlarini qo'shish (har qatorda / vergul bilan bittadan),
+// yoki raqamsiz nusxalar sonini (count) qo'shish.
+export async function addCopies(
+  textbookId: string,
+  numbersText: string,
+  count = 0
+): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+
+  const numbers = String(numbersText || '')
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let rows: { textbook_id: string; number: string | null; status: 'available' }[] = [];
+  if (numbers.length > 0) {
+    rows = numbers.map((n) => ({ textbook_id: textbookId, number: n, status: 'available' }));
+  } else if (count > 0) {
+    rows = Array.from({ length: Math.min(count, 500) }, () => ({
+      textbook_id: textbookId,
+      number: null,
+      status: 'available' as const,
+    }));
+  } else {
+    return { ok: false, message: 'empty' };
+  }
+
+  const { error } = await supabase.from('textbook_copies').insert(rows);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath(`/librarian/textbooks/${textbookId}`);
+  revalidatePath('/librarian/textbooks');
+  return { ok: true, added: rows.length };
+}
+
+// Bo'sh (berilmagan) nusxani o'chirish
+export async function deleteCopy(copyId: string): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+
+  const { data: copy } = await supabase
+    .from('textbook_copies')
+    .select('status, textbook_id')
+    .eq('id', copyId)
+    .single();
+
+  if (!copy) return { ok: false, message: 'nocopy' };
+  if ((copy as { status: string }).status === 'given') return { ok: false, message: 'given' };
+
+  const { error } = await supabase.from('textbook_copies').delete().eq('id', copyId);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath(`/librarian/textbooks/${(copy as { textbook_id: string }).textbook_id}`);
+  return { ok: true };
+}
+
+// Aniq nomerli nusxani o'quvchiga berish
+export async function giveCopy(copyId: string, studentId: string): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+  if (!studentId) return { ok: false, message: 'nostudent' };
+
+  const { data: copy } = await supabase
+    .from('textbook_copies')
+    .select('id, textbook_id, status')
+    .eq('id', copyId)
+    .single();
+  if (!copy) return { ok: false, message: 'nocopy' };
+  const c = copy as { id: string; textbook_id: string; status: string };
+  if (c.status !== 'available') return { ok: false, message: 'notavailable' };
+
+  // O'quvchida shu darslik allaqachon bo'lmasin
+  const { data: existing } = await supabase
+    .from('textbook_loans')
+    .select('id')
+    .eq('textbook_id', c.textbook_id)
+    .eq('student_id', studentId)
+    .eq('status', 'given')
+    .maybeSingle();
+  if (existing) return { ok: false, message: 'already' };
+
+  await supabase.from('textbook_copies').update({ status: 'given' }).eq('id', copyId);
+  const { error } = await supabase.from('textbook_loans').insert({
+    textbook_id: c.textbook_id,
+    copy_id: copyId,
+    student_id: studentId,
+    status: 'given',
+    academic_year: currentAcademicYear(),
+  });
+  if (error) {
+    await supabase.from('textbook_copies').update({ status: 'available' }).eq('id', copyId);
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath(`/librarian/textbooks/${c.textbook_id}`);
+  revalidatePath('/librarian/textbooks/distribute');
+  return { ok: true };
+}
+
+// Butun sinfga to'plamni birdaniga tarqatish —
+// sinfdagi har bir o'quvchiga sinfiga mos barcha darsliklardan bittadan nusxa.
+export async function giveSetToClass(className: string): Promise<TbResult> {
+  const supabase = await assertLibrarian();
+  if (!className) return { ok: false, message: 'noclass' };
+
+  const grade = gradeOf(className);
+  if (!grade) return { ok: false, message: 'nograde' };
+
+  const { data: students } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'student')
+    .eq('class_name', className);
+  const studentIds = (students ?? []).map((s) => s.id);
+  if (studentIds.length === 0) return { ok: true, given: 0 };
+
+  const { data: textbooks } = await supabase.from('textbooks').select('id').eq('grade', grade);
+  const tbIds = (textbooks ?? []).map((t) => t.id);
+  if (tbIds.length === 0) return { ok: true, given: 0 };
+
+  // Mavjud nusxalarni darslik bo'yicha guruhlaymiz (xotirada taqsimlaymiz)
+  const { data: copies } = await supabase
+    .from('textbook_copies')
+    .select('id, textbook_id')
+    .in('textbook_id', tbIds)
+    .eq('status', 'available');
+  const pool = new Map<string, string[]>();
+  for (const c of copies ?? []) {
+    if (!pool.has(c.textbook_id)) pool.set(c.textbook_id, []);
+    pool.get(c.textbook_id)!.push(c.id);
+  }
+
+  // Allaqachon berilganlar
+  const { data: existing } = await supabase
+    .from('textbook_loans')
+    .select('student_id, textbook_id')
+    .in('student_id', studentIds)
+    .eq('status', 'given');
+  const held = new Set((existing ?? []).map((e) => `${e.student_id}||${e.textbook_id}`));
+
+  const year = currentAcademicYear();
+  const loanRows: {
+    textbook_id: string;
+    copy_id: string;
+    student_id: string;
+    status: 'given';
+    academic_year: string;
+  }[] = [];
+  const usedCopyIds: string[] = [];
+
+  for (const sid of studentIds) {
+    for (const tbId of tbIds) {
+      if (held.has(`${sid}||${tbId}`)) continue;
+      const stack = pool.get(tbId);
+      if (!stack || stack.length === 0) continue; // nusxa qolmadi
+      const copyId = stack.pop()!;
+      loanRows.push({
+        textbook_id: tbId,
+        copy_id: copyId,
+        student_id: sid,
+        status: 'given',
+        academic_year: year,
+      });
+      usedCopyIds.push(copyId);
+      held.add(`${sid}||${tbId}`);
+    }
+  }
+
+  if (loanRows.length === 0) return { ok: true, given: 0 };
+
+  await supabase.from('textbook_copies').update({ status: 'given' }).in('id', usedCopyIds);
+  const { error } = await supabase.from('textbook_loans').insert(loanRows);
+  if (error) {
+    await supabase.from('textbook_copies').update({ status: 'available' }).in('id', usedCopyIds);
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath('/librarian/textbooks/distribute');
+  return { ok: true, given: loanRows.length };
 }

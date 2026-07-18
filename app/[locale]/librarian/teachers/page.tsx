@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import AccountManager from '@/components/AccountManager';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function TeachersPage() {
   const locale = await getLocale();
   const profile = await getProfile();

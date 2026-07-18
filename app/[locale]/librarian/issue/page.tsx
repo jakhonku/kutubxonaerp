@@ -3,12 +3,11 @@ import { redirect } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
-import AccountManager from '@/components/AccountManager';
+import QrIssue from '@/components/QrIssue';
 
-// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
 export const dynamic = 'force-dynamic';
 
-export default async function LibrariansPage() {
+export default async function IssuePage() {
   const locale = await getLocale();
   const profile = await getProfile();
 
@@ -17,21 +16,21 @@ export default async function LibrariansPage() {
     return null;
   }
 
-  const t = await getTranslations('students');
+  const t = await getTranslations('qr');
   const supabase = await createClient();
-  const { data: librarians } = await supabase
+  const { data: users } = await supabase
     .from('profiles')
-    .select('*')
-    .eq('role', 'librarian')
-    .order('full_name', { ascending: true });
+    .select('id, full_name, class_name, login, role')
+    .in('role', ['student', 'teacher'])
+    .order('full_name');
 
   return (
     <DashboardShell role="librarian">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900">{t('librariansTitle')}</h1>
-        <p className="mt-1 text-stone-500">{t('librariansSubtitle')}</p>
+        <h1 className="text-2xl font-bold text-stone-900">{t('issueTitle')}</h1>
+        <p className="mt-1 text-stone-500">{t('issueSubtitle')}</p>
       </div>
-      <AccountManager accounts={librarians ?? []} mode="librarian" />
+      <QrIssue users={(users as never) ?? []} />
     </DashboardShell>
   );
 }

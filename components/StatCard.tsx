@@ -5,6 +5,7 @@ interface Props {
   value: number | string;
   icon: LucideIcon;
   accent?: 'brand' | 'amber' | 'red' | 'blue';
+  hint?: string;
 }
 
 const ACCENTS: Record<string, string> = {
@@ -14,13 +15,14 @@ const ACCENTS: Record<string, string> = {
   blue: 'bg-blue-50 text-blue-700',
 };
 
-export default function StatCard({ label, value, icon: Icon, accent = 'brand' }: Props) {
+export default function StatCard({ label, value, icon: Icon, accent = 'brand', hint }: Props) {
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-stone-500">{label}</p>
           <p className="mt-1 text-3xl font-bold text-stone-900">{value}</p>
+          {hint && <p className="mt-1 text-xs text-stone-400">{hint}</p>}
         </div>
         <div className={`rounded-lg p-3 ${ACCENTS[accent]}`}>
           <Icon className="h-6 w-6" />

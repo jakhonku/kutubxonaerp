@@ -5,8 +5,13 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import MyLoans from '@/components/MyLoans';
+import QrCode from '@/components/QrCode';
+import { userPayload } from '@/lib/qr';
 import { BookOpen, Library, AlertTriangle, Search, BookMarked } from 'lucide-react';
 import type { LoanWithRelations } from '@/types/database';
+
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
 
 export default async function StudentDashboard() {
   const locale = await getLocale();
@@ -66,6 +71,19 @@ export default async function StudentDashboard() {
           {t('loans.overdue')}: <span className="font-semibold">{overdue.length}</span>
         </div>
       )}
+
+      {/* Mening QR kodim — kutubxonachi skaner qiladi */}
+      <div className="mb-8 flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 sm:max-w-md">
+        <QrCode
+          value={userPayload(profile.id, profile.login, profile.full_name)}
+          size={104}
+          showDownload={false}
+        />
+        <div>
+          <p className="font-semibold text-stone-900">{t('qr.myQr')}</p>
+          <p className="mt-1 text-sm text-stone-500">{t('qr.myQrHint')}</p>
+        </div>
+      </div>
 
       {/* O'quvchi ko'rsatkichlari */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2">

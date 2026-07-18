@@ -98,6 +98,28 @@ export interface TextbookLoanWithRelations extends TextbookLoan {
   profiles: Pick<Profile, 'id' | 'full_name' | 'class_name'> | null;
 }
 
+// Inventar kitobi (accession register) yozuvi
+export interface InventoryEntry {
+  id: string;
+  inv_number: string;
+  book_id: string | null;
+  title: string;
+  author: string | null;
+  publisher: string | null;
+  publication_year: number | null;
+  classification: string | null;
+  price: number | null;
+  source: string | null;
+  document_ref: string | null;
+  received_at: string | null;
+  written_off: boolean;
+  write_off_date: string | null;
+  write_off_act: string | null;
+  write_off_reason: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -135,6 +157,12 @@ export interface Database {
         Row: TextbookCopy;
         Insert: Omit<TextbookCopy, 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<TextbookCopy>;
+        Relationships: [];
+      };
+      inventory_entries: {
+        Row: InventoryEntry;
+        Insert: Omit<InventoryEntry, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<InventoryEntry>;
         Relationships: [];
       };
     };

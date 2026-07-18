@@ -3,21 +3,22 @@ import { createClient } from '@/lib/supabase/server';
 import type { Profile } from '@/types/database';
 
 // Joriy foydalanuvchi profilini qaytaradi (yo'q bo'lsa null).
-// getSession() cookie'dan o'qiydi (tarmoqsiz) — getUser() dagi ortiqcha
-// tarmoq so'rovини oldini oladi. Ma'lumot xavfsizligi RLS bilan ta'minlanadi.
-// React cache() — bitta so'rovда takroriy chaqiruvlarни birlashtiradi.
+// getUser() JWT'ni Supabase Auth serverida TEKSHIRADI — soxta yoki bekor
+// qilingan cookie'ni qabul qilmaydi (getSession()'dan farqli, u faqat
+// cookie'ni o'qiydi). Server tomonida ishonchli auth uchun getUser() shart.
+// React cache() — bitta so'rovda takroriy chaqiruvlarni birlashtiradi.
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) return null;
+  if (!user) return null;
 
   const { data } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   return data;

@@ -12,12 +12,8 @@ export default async function DashboardPage() {
     return null;
   }
 
-  const target =
-    profile.role === 'librarian'
-      ? '/librarian'
-      : profile.role === 'teacher'
-        ? '/teacher'
-        : '/student';
+  // Kutubxonachi -> boshqaruv paneli; boshqa foydalanuvchilar -> kitob qidirish
+  const target = profile.role === 'librarian' ? '/librarian' : '/search';
 
   redirect({ href: target, locale });
   return null;

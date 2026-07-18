@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Trash2, BookOpen, FileText, Pencil } from 'lucide-react';
+import { Trash2, BookOpen, FileText, Pencil, QrCode as QrCodeIcon } from 'lucide-react';
 import { useTransition } from 'react';
 import { deleteBook } from '@/app/[locale]/librarian/actions';
 import type { Book } from '@/types/database';
@@ -54,6 +54,15 @@ export default function BookManageList({ books }: { books: Book[] }) {
               </td>
               <td className="p-3">
                 <div className="flex items-center gap-1">
+                  {book.type === 'physical' && (
+                    <Link
+                      href={`/librarian/books/${book.id}`}
+                      className="rounded-lg p-2 text-brand-600 transition-colors hover:bg-brand-50"
+                      title={t('qr.copiesQr')}
+                    >
+                      <QrCodeIcon className="h-4 w-4" />
+                    </Link>
+                  )}
                   <Link
                     href={`/librarian/books/${book.id}/edit`}
                     className="rounded-lg p-2 text-stone-600 transition-colors hover:bg-stone-100"

@@ -19,6 +19,10 @@ import {
 } from 'lucide-react';
 import type { LoanWithRelations } from '@/types/database';
 
+// Ma'lumotlar har kirishда yangi olinsin (Next.js Data Cache'ni o'chiramiz) —
+// aks holda kitob/foydalanuvchi qo'shilsa ham eski sonlar ko'rinib qolardi.
+export const dynamic = 'force-dynamic';
+
 export default async function LibrarianDashboard() {
   const locale = await getLocale();
   const supabase = await createClient();
@@ -27,6 +31,8 @@ export default async function LibrarianDashboard() {
   const [
     profile,
     { count: totalBooks },
+    { count: physicalBooks },
+    { count: ebooks },
     { count: activeLoans },
     { count: overdue },
     { count: totalUsers },
@@ -35,6 +41,8 @@ export default async function LibrarianDashboard() {
   ] = await Promise.all([
     getProfile(),
     supabase.from('books').select('*', { count: 'exact', head: true }),
+    supabase.from('books').select('*', { count: 'exact', head: true }).eq('type', 'physical'),
+    supabase.from('books').select('*', { count: 'exact', head: true }).eq('type', 'ebook'),
     supabase.from('loans').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase
       .from('loans')
@@ -81,7 +89,13 @@ export default async function LibrarianDashboard() {
 
       {/* Ko'rsatkichlar */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t('librarian.stats.totalBooks')} value={totalBooks ?? 0} icon={BookMarked} accent="brand" />
+        <StatCard
+          label={t('librarian.stats.totalBooks')}
+          value={totalBooks ?? 0}
+          icon={BookMarked}
+          accent="brand"
+          hint={`${t('librarian.stats.physical')}: ${physicalBooks ?? 0} · ${t('librarian.stats.ebook')}: ${ebooks ?? 0}`}
+        />
         <StatCard label={t('librarian.stats.activeLoans')} value={activeLoans ?? 0} icon={Repeat} accent="blue" />
         <StatCard label={t('librarian.stats.overdue')} value={overdue ?? 0} icon={AlertTriangle} accent="red" />
         <StatCard label={t('librarian.stats.totalUsers')} value={totalUsers ?? 0} icon={Users} accent="amber" />

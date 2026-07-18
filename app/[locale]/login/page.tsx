@@ -35,8 +35,8 @@ export default function LoginPage() {
       return;
     }
 
-    // Rolni bir marta olib, to'g'ridan-to'g'ri kerakli panelga o'tamiz
-    // (ortiqcha /dashboard sakrashini olib tashlaymiz — tezroq).
+    // Rolni bir marta olib, to'g'ridan-to'g'ri kerakli sahifaga o'tamiz.
+    // Kutubxonachi -> boshqaruv paneli; o'quvchi/o'qituvchi -> kitob qidirish.
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -44,14 +44,7 @@ export default function LoginPage() {
       .single();
 
     const role = (profile as { role?: string } | null)?.role;
-    const target =
-      role === 'librarian'
-        ? '/librarian'
-        : role === 'teacher'
-          ? '/teacher'
-          : role === 'student'
-            ? '/student'
-            : '/dashboard';
+    const target = role === 'librarian' ? '/librarian' : '/search';
 
     router.replace(target);
     router.refresh();

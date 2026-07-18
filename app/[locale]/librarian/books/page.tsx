@@ -6,6 +6,9 @@ import DashboardShell from '@/components/DashboardShell';
 import BookManageList from '@/components/BookManageList';
 import { PlusCircle } from 'lucide-react';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function ManageBooksPage() {
   const locale = await getLocale();
   const profile = await getProfile();

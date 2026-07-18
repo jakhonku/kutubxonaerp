@@ -5,6 +5,7 @@ import { useRouter } from '@/i18n/navigation';
 import {
   giveTextbook,
   giveSet,
+  giveSetToClass,
   returnTextbook,
   returnClassTextbooks,
 } from '@/app/[locale]/librarian/textbook-actions';
@@ -17,6 +18,7 @@ import {
   AlertCircle,
   Info,
   Undo2,
+  PackageOpen,
 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import type { Textbook } from '@/types/database';
@@ -147,6 +149,24 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
     });
   }
 
+  function handleGiveClass(className: string) {
+    if (!window.confirm(t('confirmGiveClass', { class: className }))) return;
+    setMsg(null);
+    startTransition(async () => {
+      const res = await giveSetToClass(className);
+      if (res.ok) {
+        setMsg(
+          res.given && res.given > 0
+            ? { type: 'ok', text: t('classGivenN', { count: res.given }) }
+            : { type: 'info', text: t('setNothing') }
+        );
+        refresh();
+      } else {
+        setMsg({ type: 'err', text: res.message === 'nograde' ? t('noGrade') : res.message || '' });
+      }
+    });
+  }
+
   function handleReturnClass(className: string) {
     if (!window.confirm(t('confirmReturnAll', { class: className }))) return;
     setMsg(null);
@@ -210,17 +230,30 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
                         </div>
                       </td>
                       <td className="p-3">
-                        {c.cls !== '—' && c.received > 0 && (
-                          <button
-                            onClick={() => handleReturnClass(c.cls)}
-                            disabled={isPending}
-                            className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
-                            title={t('returnAll')}
-                          >
-                            <Undo2 className="h-3.5 w-3.5" />
-                            {t('returnAll')}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {c.cls !== '—' && c.notReceived > 0 && (
+                            <button
+                              onClick={() => handleGiveClass(c.cls)}
+                              disabled={isPending}
+                              className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                              title={t('giveClass')}
+                            >
+                              <PackageOpen className="h-3.5 w-3.5" />
+                              {t('giveClass')}
+                            </button>
+                          )}
+                          {c.cls !== '—' && c.received > 0 && (
+                            <button
+                              onClick={() => handleReturnClass(c.cls)}
+                              disabled={isPending}
+                              className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
+                              title={t('returnAll')}
+                            >
+                              <Undo2 className="h-3.5 w-3.5" />
+                              {t('returnAll')}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

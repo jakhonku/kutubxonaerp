@@ -8,6 +8,9 @@ import MyLoans from '@/components/MyLoans';
 import { BookOpen, Library, BookMarked, FileText, ArrowRight } from 'lucide-react';
 import type { LoanWithRelations } from '@/types/database';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function TeacherDashboard() {
   const locale = await getLocale();
   const profile = await getProfile();

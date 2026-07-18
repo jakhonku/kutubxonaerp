@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import { BookMarked } from 'lucide-react';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function StudentTextbooksPage() {
   const locale = await getLocale();
   const profile = await getProfile();

@@ -23,6 +23,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+// Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
+export const dynamic = 'force-dynamic';
+
 export default async function ReportsPage() {
   const locale = await getLocale();
   const supabase = await createClient();

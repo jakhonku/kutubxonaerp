@@ -2,7 +2,14 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { createAccount, deleteAccount, updateAccount } from '@/app/[locale]/librarian/actions';
+import {
+  createAccount,
+  deleteAccount,
+  updateAccount,
+  importStudents,
+  type StudentImportRow,
+  type ImportStudentsResult,
+} from '@/app/[locale]/librarian/actions';
 import {
   UserPlus,
   Trash2,
@@ -11,6 +18,9 @@ import {
   CheckCircle2,
   KeyRound,
   X,
+  FileSpreadsheet,
+  FileDown,
+  Download,
 } from 'lucide-react';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import type { Profile, Role } from '@/types/database';
@@ -18,6 +28,21 @@ import type { Profile, Role } from '@/types/database';
 interface Props {
   accounts: Profile[];
   mode: Role; // yaratiladigan/tahrirlanadigan hisob roli
+}
+
+// ExcelJS workbook'ni faylga saqlaydi
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function saveWorkbook(wb: any, filename: string) {
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AccountManager({ accounts, mode }: Props) {
@@ -35,6 +60,10 @@ export default function AccountManager({ accounts, mode }: Props) {
   const [filterClass, setFilterClass] = useState('');
   const [editing, setEditing] = useState<Profile | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Excel import holati
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportStudentsResult | null>(null);
 
   // Mavjud sinflar (o'quvchilardan olinadi) — filtr uchun
   const existingClasses = useMemo(
@@ -65,6 +94,8 @@ export default function AccountManager({ accounts, mode }: Props) {
         router.refresh();
       } else if (res.error === 'taken') {
         setError(t('loginTaken'));
+      } else if (res.error === 'name') {
+        setError(t('nameTaken'));
       } else {
         setError(res.message || tc('required'));
       }
@@ -77,6 +108,82 @@ export default function AccountManager({ accounts, mode }: Props) {
       await deleteAccount(id);
       router.refresh();
     });
+  }
+
+  // Excel shabloni: F.I.Sh. | Sinf | Login | Parol
+  async function downloadTemplate() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('exceljs');
+    const ExcelJS = mod.default ?? mod;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(t('title'));
+    ws.columns = [
+      { header: t('fullName'), key: 'name', width: 30 },
+      { header: t('className'), key: 'cls', width: 12 },
+      { header: t('login'), key: 'login', width: 20 },
+      { header: t('password'), key: 'pwd', width: 16 },
+    ];
+    ws.getRow(1).eachCell((c: { font: unknown; fill: unknown }) => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5D3A' } };
+    });
+    ws.addRow(['Aliyev Vali Aliyevich', '5-A', 'aliyev05', '']);
+    ws.addRow(['Valiyeva Nodira Valiyevna', '5-A', 'valiyeva05', '']);
+    await saveWorkbook(wb, 'oquvchi-shablon.xlsx');
+  }
+
+  // Excel faylni o'qib import qilish
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportResult(null);
+    setImporting(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mod: any = await import('exceljs');
+      const ExcelJS = mod.default ?? mod;
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await file.arrayBuffer());
+      const ws = wb.worksheets[0];
+      const rows: StudentImportRow[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ws.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return; // sarlavha
+        const cell = (i: number) => String(row.getCell(i).value ?? '').trim();
+        const full_name = cell(1);
+        const login = cell(3);
+        if (!full_name && !login) return; // bo'sh qator
+        rows.push({ full_name, class_name: cell(2), login, password: cell(4) });
+      });
+
+      const res = await importStudents(rows, locale as 'uz' | 'kk');
+      setImportResult(res);
+      router.refresh();
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  }
+
+  // Yaratilgan login/parollarni Excel'ga yuklab olish
+  async function downloadCredentials(created: ImportStudentsResult['created']) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('exceljs');
+    const ExcelJS = mod.default ?? mod;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(t('title'));
+    ws.columns = [
+      { header: t('fullName'), key: 'name', width: 30 },
+      { header: t('className'), key: 'cls', width: 12 },
+      { header: t('login'), key: 'login', width: 20 },
+      { header: t('password'), key: 'pwd', width: 16 },
+    ];
+    ws.getRow(1).eachCell((c: { font: unknown; fill: unknown }) => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5D3A' } };
+    });
+    for (const c of created) ws.addRow([c.full_name, c.class_name, c.login, c.password]);
+    await saveWorkbook(wb, 'oquvchi-loginlar.xlsx');
   }
 
   return (
@@ -150,6 +257,90 @@ export default function AccountManager({ accounts, mode }: Props) {
         </div>
       </form>
 
+      {/* Excel orqali ommaviy import (faqat o'quvchilar) */}
+      {isStudent && (
+        <div className="space-y-4 rounded-2xl border border-stone-200 bg-white p-6">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-brand-600" />
+            <h2 className="font-semibold text-stone-900">{t('importTitle')}</h2>
+          </div>
+          <p className="text-sm text-stone-500">{t('importHint')}</p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className="flex items-center gap-2 rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              <FileDown className="h-4 w-4" />
+              {t('downloadTemplate')}
+            </button>
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700">
+              <FileSpreadsheet className="h-4 w-4" />
+              {importing ? t('importing') : t('chooseFile')}
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleImportFile}
+                disabled={importing}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {/* Import natijasi */}
+          {importResult && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-3 text-sm">
+                <span className="flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-1.5 font-medium text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {t('importedN', { count: importResult.added })}
+                </span>
+                {importResult.skipped.length > 0 && (
+                  <span className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 font-medium text-amber-700">
+                    <AlertCircle className="h-4 w-4" />
+                    {t('skippedN', { count: importResult.skipped.length })}
+                  </span>
+                )}
+              </div>
+
+              {importResult.created.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => downloadCredentials(importResult.created)}
+                  className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100"
+                >
+                  <Download className="h-4 w-4" />
+                  {t('downloadCreds')}
+                </button>
+              )}
+
+              {importResult.skipped.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-stone-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-stone-50 text-left text-stone-500">
+                      <tr>
+                        <th className="p-2.5 font-medium">{t('fullName')}</th>
+                        <th className="p-2.5 font-medium">{t('skipReason')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {importResult.skipped.map((s, i) => (
+                        <tr key={i}>
+                          <td className="p-2.5 text-stone-700">{s.name}</td>
+                          <td className="p-2.5 text-stone-500">{t(`reason_${s.reason}`)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sinf bo'yicha filtr (faqat o'quvchilar) */}
       {isStudent && accounts.length > 0 && (
         <div className="flex items-center gap-2">
@@ -206,6 +397,8 @@ export default function AccountManager({ accounts, mode }: Props) {
                 router.refresh();
               } else if (res.error === 'taken') {
                 setError(t('loginTaken'));
+              } else if (res.error === 'name') {
+                setError(t('nameTaken'));
               } else {
                 setError(res.message || tc('required'));
               }
