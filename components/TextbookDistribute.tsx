@@ -53,6 +53,7 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
   const t = useTranslations('textbooks');
   const router = useRouter();
   const [studentId, setStudentId] = useState('');
+  const [returnClass, setReturnClass] = useState('');
   const [msg, setMsg] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -174,6 +175,7 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
       const res = await returnClassTextbooks(className);
       if (res.ok) {
         setMsg({ type: 'ok', text: t('returnedN', { count: res.returned ?? 0 }) });
+        setReturnClass('');
         refresh();
       }
     });
@@ -262,6 +264,41 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
             </table>
           </div>
         )}
+      </div>
+
+      {/* Butun sinfdan darsliklarni qaytarib olish */}
+      <div className="rounded-2xl border border-stone-200 bg-white p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="rounded-lg bg-amber-50 p-1.5 text-amber-600">
+            <Undo2 className="h-4 w-4" />
+          </span>
+          <h2 className="font-semibold text-stone-900">{t('returnClassTitle')}</h2>
+        </div>
+        <p className="mb-4 text-sm text-stone-500">{t('returnClassHint')}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={returnClass}
+            onChange={(e) => setReturnClass(e.target.value)}
+            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">{t('selectClass')}</option>
+            {classStats
+              .filter((c) => c.cls !== '—' && c.received > 0)
+              .map((c) => (
+                <option key={c.cls} value={c.cls}>
+                  {c.cls} ({c.received})
+                </option>
+              ))}
+          </select>
+          <button
+            onClick={() => returnClass && handleReturnClass(returnClass)}
+            disabled={isPending || !returnClass}
+            className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-40"
+          >
+            <Undo2 className="h-4 w-4" />
+            {t('returnClassBtn')}
+          </button>
+        </div>
       </div>
 
       {/* O'quvchi tanlash */}
