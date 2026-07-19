@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import MyLoans from '@/components/MyLoans';
+import ReturnReminder from '@/components/ReturnReminder';
 import TeacherClassOverview, { type ClassStudentRow } from '@/components/TeacherClassOverview';
 import { BookOpen, Library, BookMarked, FileText, ArrowRight, Users } from 'lucide-react';
 import type { LoanWithRelations } from '@/types/database';
@@ -99,6 +100,9 @@ export default async function TeacherDashboard() {
           </span>
         ))}
       </div>
+
+      {/* Qaytarish habarnomasi — o'qituvchining o'z kitoblari */}
+      <ReturnReminder loans={(loans as LoanWithRelations[]) ?? []} />
 
       {/* Har bir sinf bo'yicha o'quvchilar holati */}
       {classes.map((c) => (

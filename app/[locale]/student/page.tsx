@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import MyLoans from '@/components/MyLoans';
+import ReturnReminder from '@/components/ReturnReminder';
 import QrCode from '@/components/QrCode';
 import { userPayload } from '@/lib/qr';
 import { BookOpen, Library, AlertTriangle, Search, BookMarked } from 'lucide-react';
@@ -64,13 +65,8 @@ export default async function StudentDashboard() {
         )}
       </div>
 
-      {/* Muddati o'tgan kitoblar ogohlantirishi */}
-      {overdue.length > 0 && (
-        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <AlertTriangle className="h-5 w-5 shrink-0" />
-          {t('loans.overdue')}: <span className="font-semibold">{overdue.length}</span>
-        </div>
-      )}
+      {/* Qaytarish habarnomasi — muddati o'tgan yoki yaqinlashgan kitoblar */}
+      <ReturnReminder loans={all} />
 
       {/* Mening QR kodim — kutubxonachi skaner qiladi */}
       <div className="mb-8 flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 sm:max-w-md">

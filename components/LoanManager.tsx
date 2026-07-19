@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { issueLoan, returnLoan, renewLoan } from '@/app/[locale]/librarian/actions';
-import { RotateCcw, Send, CalendarPlus, AlertCircle } from 'lucide-react';
+import { RotateCcw, Send, CalendarPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import SearchSelect, { type SelectOption } from './SearchSelect';
 import type { Book, LoanWithRelations, Profile } from '@/types/database';
@@ -24,12 +24,14 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<LoanFilter>('all');
   const [issueError, setIssueError] = useState('');
+  const [issueOk, setIssueOk] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
-  // Standart muddat: 14 kundan keyin
-  const defaultDue = new Date(Date.now() + 14 * 86400000)
-    .toISOString()
-    .slice(0, 10);
+  // Muddat sanasi: N kundan keyin (standart 14)
+  const dateAfter = (days: number) =>
+    new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+  const [due, setDue] = useState(() => dateAfter(14));
+  const TERMS = [7, 14, 30];
 
   // Qidiruvli tanlash uchun variantlar
   const studentOptions: SelectOption[] = useMemo(
@@ -56,13 +58,28 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
 
   function handleIssue(fd: FormData) {
     setIssueError('');
+    setIssueOk(false);
     if (!fd.get('user_id') || !fd.get('book_id')) {
       setIssueError(t('librarian.selectRequired'));
       return;
     }
     startTransition(async () => {
-      await issueLoan(fd);
-      setFormKey((k) => k + 1); // formani tozalash uchun qayta yuklaymiz
+      const res = await issueLoan(fd);
+      if (res.ok) {
+        setIssueOk(true);
+        setDue(dateAfter(14));
+        setFormKey((k) => k + 1); // formani tozalash uchun qayta yuklaymiz
+      } else {
+        const map: Record<string, string> = {
+          unavailable: t('librarian.issueUnavailable'),
+          duplicate: t('librarian.issueDuplicate'),
+          pastdue: t('librarian.issuePastDue'),
+          nobook: t('librarian.selectRequired'),
+          nouser: t('librarian.selectRequired'),
+          nodue: t('librarian.issuePastDue'),
+        };
+        setIssueError(map[res.message ?? ''] ?? res.message ?? '');
+      }
     });
   }
 
@@ -147,10 +164,37 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
             <span className="mb-1 block text-sm font-medium text-stone-700">
               {t('librarian.dueDate')}
             </span>
-            <input name="due_date" type="date" required defaultValue={defaultDue} className="fld" />
+            <input
+              name="due_date"
+              type="date"
+              required
+              min={dateAfter(0)}
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="fld"
+            />
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {TERMS.map((d) => {
+                const val = dateAfter(d);
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDue(val)}
+                    className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                      due === val
+                        ? 'bg-brand-600 text-white'
+                        : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    {t('librarian.termDays', { days: d })}
+                  </button>
+                );
+              })}
+            </div>
           </label>
 
-          <div className="flex items-end">
+          <div className="flex items-start sm:items-end">
             <button
               type="submit"
               disabled={isPending}
@@ -166,6 +210,12 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {issueError}
+          </div>
+        )}
+        {issueOk && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            {t('librarian.issued')}
           </div>
         )}
       </form>

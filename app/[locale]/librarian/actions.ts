@@ -30,22 +30,62 @@ export async function deleteBook(id: string) {
   revalidatePath('/librarian/books');
 }
 
-// Kitob berish (loan yaratish) — trigger available_copies ni kamaytiradi
-export async function issueLoan(formData: FormData) {
+export type IssueResult = {
+  ok: boolean;
+  message?: 'nobook' | 'nouser' | 'nodue' | 'pastdue' | 'unavailable' | 'duplicate' | string;
+};
+
+// Kitob berish (loan yaratish) — trigger available_copies ni kamaytiradi.
+// Tekshiruvlar: kitob/foydalanuvchi/sana tanlangan, sana o'tmagan,
+// bo'sh nusxa bor, va shu kitob foydalanuvchida allaqachon faol emas.
+export async function issueLoan(formData: FormData): Promise<IssueResult> {
   const supabase = await assertLibrarian();
 
-  const bookId = String(formData.get('book_id'));
-  const userId = String(formData.get('user_id'));
-  const dueDate = String(formData.get('due_date'));
+  const bookId = String(formData.get('book_id') || '');
+  const userId = String(formData.get('user_id') || '');
+  const dueDate = String(formData.get('due_date') || '');
 
-  await supabase.from('loans').insert({
+  if (!bookId) return { ok: false, message: 'nobook' };
+  if (!userId) return { ok: false, message: 'nouser' };
+  if (!dueDate) return { ok: false, message: 'nodue' };
+
+  const due = new Date(dueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (Number.isNaN(due.getTime()) || due < today) {
+    return { ok: false, message: 'pastdue' };
+  }
+
+  // Bo'sh nusxa bormi
+  const { data: book } = await supabase
+    .from('books')
+    .select('available_copies')
+    .eq('id', bookId)
+    .single();
+  if (!book || ((book as { available_copies?: number }).available_copies ?? 0) <= 0) {
+    return { ok: false, message: 'unavailable' };
+  }
+
+  // Shu kitob foydalanuvchida allaqachon faol turibdimi
+  const { data: dup } = await supabase
+    .from('loans')
+    .select('id')
+    .eq('book_id', bookId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (dup) return { ok: false, message: 'duplicate' };
+
+  const { error } = await supabase.from('loans').insert({
     book_id: bookId,
     user_id: userId,
-    due_date: new Date(dueDate).toISOString(),
+    due_date: due.toISOString(),
     status: 'active',
   });
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath('/librarian/loans');
+  return { ok: true };
 }
 
 // Kitobni qaytarish — trigger available_copies ni oshiradi

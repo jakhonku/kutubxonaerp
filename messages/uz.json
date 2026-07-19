@@ -91,6 +91,10 @@
     "searchBook": "Kitob nomi, ISBN yoki inventar bo'yicha...",
     "selectRequired": "O'quvchi va kitobni tanlang",
     "dueDate": "Qaytarish muddati",
+    "termDays": "{days} kun",
+    "issueUnavailable": "Bu kitobning bo'sh nusxasi yo'q",
+    "issueDuplicate": "Bu kitob foydalanuvchida allaqachon bor",
+    "issuePastDue": "Qaytarish sanasini to'g'ri tanlang (o'tmagan bo'lsin)",
     "borrowedAt": "Berilgan sana",
     "issued": "Kitob berildi",
     "returned": "Qaytarildi",
@@ -473,6 +477,15 @@
     "installedNote": "Ilova o'rnatilgan",
     "iosHint": "Pastdagi «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish»ni tanlang.",
     "androidHint": "Brauzer menyusini oching va «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang."
+  },
+  "reminder": {
+    "returnNow": "Kitobni qaytaring!",
+    "overdueLead": "Quyidagi kitob(lar)ning qaytarish muddati o'tdi. Iltimos, tezroq kutubxonaga qaytaring:",
+    "returnSoon": "Qaytarish vaqti yaqinlashdi",
+    "soonLead": "Quyidagi kitob(lar)ni o'z vaqtida qaytaring:",
+    "overdueBy": "{days} kun kechikdi",
+    "dueToday": "Bugun oxirgi kun",
+    "dueInDays": "{days} kundan keyin"
   },
   "teacher": {
     "classTitle": "{class} sinf o'quvchilari",
