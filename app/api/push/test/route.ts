@@ -26,8 +26,12 @@ export async function GET(req: NextRequest) {
 
   let query = admin.from('push_subscriptions').select('*');
   if (userId) query = query.eq('user_id', userId);
-  const { data: subs } = await query;
+  const { data: subs, error: subsErr } = await query;
 
+  if (subsErr) {
+    // Masalan: jadval mavjud emas (push.sql ishga tushmagan)
+    return NextResponse.json({ ok: false, error: 'db_error', detail: subsErr.message }, { status: 500 });
+  }
   if (!subs || subs.length === 0) {
     return NextResponse.json({ ok: true, sent: 0, note: 'no_subscriptions' });
   }
