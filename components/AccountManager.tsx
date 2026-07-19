@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   FileDown,
   Download,
+  UserCog,
 } from 'lucide-react';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import type { Profile, Role } from '@/types/database';
@@ -29,6 +30,7 @@ interface Props {
   accounts: Profile[];
   mode: Role; // yaratiladigan/tahrirlanadigan hisob roli
   classOptions?: string[]; // tanlash uchun mavjud sinflar (masalan o'qituvchiga o'quvchilar sinflari)
+  classTeachers?: Record<string, string[]>; // sinf -> sinf rahbari(lar)
 }
 
 // ExcelJS workbook'ni faylga saqlaydi
@@ -46,7 +48,7 @@ async function saveWorkbook(wb: any, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function AccountManager({ accounts, mode, classOptions }: Props) {
+export default function AccountManager({ accounts, mode, classOptions, classTeachers }: Props) {
   const t = useTranslations('students');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -386,6 +388,7 @@ export default function AccountManager({ accounts, mode, classOptions }: Props) 
           onEdit={setEditing}
           onDelete={handleDelete}
           pending={isPending}
+          classTeachers={classTeachers}
         />
       ) : (
         <AccountTable
@@ -613,11 +616,13 @@ function StudentGroups({
   onEdit,
   onDelete,
   pending,
+  classTeachers,
 }: {
   accounts: Profile[];
   onEdit: (p: Profile) => void;
   onDelete: (id: string) => void;
   pending: boolean;
+  classTeachers?: Record<string, string[]>;
 }) {
   const t = useTranslations('students');
   const locale = useLocale();
@@ -632,13 +637,21 @@ function StudentGroups({
 
   return (
     <div className="space-y-6">
-      {classNames.map((cls) => (
+      {classNames.map((cls) => {
+        const teachers = classTeachers?.[cls] ?? [];
+        return (
         <div key={cls}>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-stone-500">
+          <h3 className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold uppercase tracking-wide text-stone-500">
             {cls}
             <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
               {byClass.get(cls)!.length}
             </span>
+            {teachers.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium normal-case text-brand-700">
+                <UserCog className="h-3.5 w-3.5" />
+                {t('homeroomTeacher')}: {teachers.join(', ')}
+              </span>
+            )}
           </h3>
           <AccountTable
             rows={byClass.get(cls)!}
@@ -647,7 +660,8 @@ function StudentGroups({
             pending={pending}
           />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

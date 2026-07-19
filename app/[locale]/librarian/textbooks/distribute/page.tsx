@@ -20,18 +20,28 @@ export default async function DistributePage() {
   const t = await getTranslations('textbooks');
   const supabase = await createClient();
 
-  const [{ data: students }, { data: textbooks }, { data: givenLoans }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id,full_name,class_name,login')
-      .eq('role', 'student')
-      .order('full_name'),
-    supabase.from('textbooks').select('*').order('subject'),
-    supabase
-      .from('textbook_loans')
-      .select('id,student_id,textbook_id,textbooks(title,subject),textbook_copies(number)')
-      .eq('status', 'given'),
-  ]);
+  const [{ data: students }, { data: textbooks }, { data: givenLoans }, { data: teachers }] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id,full_name,class_name,login')
+        .eq('role', 'student')
+        .order('full_name'),
+      supabase.from('textbooks').select('*').order('subject'),
+      supabase
+        .from('textbook_loans')
+        .select('id,student_id,textbook_id,textbooks(title,subject),textbook_copies(number)')
+        .eq('status', 'given'),
+      supabase.from('profiles').select('full_name, class_name').eq('role', 'teacher'),
+    ]);
+
+  // Sinf -> sinf rahbari(lar)
+  const classTeachers: Record<string, string[]> = {};
+  for (const tch of teachers ?? []) {
+    for (const cls of String(tch.class_name ?? '').split(',').map((c) => c.trim()).filter(Boolean)) {
+      (classTeachers[cls] ??= []).push(tch.full_name);
+    }
+  }
 
   return (
     <DashboardShell role="librarian">
@@ -43,6 +53,7 @@ export default async function DistributePage() {
         students={students ?? []}
         textbooks={textbooks ?? []}
         givenLoans={(givenLoans as never) ?? []}
+        classTeachers={classTeachers}
       />
     </DashboardShell>
   );

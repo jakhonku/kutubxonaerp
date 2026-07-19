@@ -16,6 +16,7 @@ import {
   Info,
   ChevronRight,
   Users,
+  UserCog,
 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import type { Textbook } from '@/types/database';
@@ -39,6 +40,7 @@ interface Props {
   students: StudentLite[];
   textbooks: Textbook[];
   givenLoans: GivenLoan[];
+  classTeachers?: Record<string, string[]>;
 }
 
 function gradeOf(className: string | null): string | null {
@@ -46,7 +48,7 @@ function gradeOf(className: string | null): string | null {
   return m ? m[1] : null;
 }
 
-export default function TextbookDistribute({ students, textbooks, givenLoans }: Props) {
+export default function TextbookDistribute({ students, textbooks, givenLoans, classTeachers }: Props) {
   const t = useTranslations('textbooks');
   const router = useRouter();
   const [selectedClass, setSelectedClass] = useState('');
@@ -254,6 +256,14 @@ export default function TextbookDistribute({ students, textbooks, givenLoans }: 
               ))}
           </select>
         </div>
+
+        {selectedClass && (classTeachers?.[selectedClass]?.length ?? 0) > 0 && (
+          <p className="mt-3 flex items-center gap-1.5 text-sm text-stone-600">
+            <UserCog className="h-4 w-4 text-brand-600" />
+            <span className="font-medium text-stone-700">{t('homeroomTeacher')}:</span>{' '}
+            {classTeachers![selectedClass].join(', ')}
+          </p>
+        )}
 
         {selectedClass && (
           <div className="mt-4 overflow-hidden rounded-xl border border-stone-200">
