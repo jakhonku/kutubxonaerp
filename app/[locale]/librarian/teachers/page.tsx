@@ -19,11 +19,26 @@ export default async function TeachersPage() {
 
   const t = await getTranslations('students');
   const supabase = await createClient();
-  const { data: teachers } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'teacher')
-    .order('full_name', { ascending: true });
+  const [{ data: teachers }, { data: studentRows }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'teacher')
+      .order('full_name', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('class_name')
+      .eq('role', 'student'),
+  ]);
+
+  // O'qituvchiga biriktirish uchun mavjud sinflar (o'quvchilardan)
+  const classOptions = Array.from(
+    new Set(
+      (studentRows ?? [])
+        .map((s) => (s.class_name ?? '').trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   return (
     <DashboardShell role="librarian">
@@ -31,7 +46,7 @@ export default async function TeachersPage() {
         <h1 className="text-2xl font-bold text-stone-900">{t('teachersTitle')}</h1>
         <p className="mt-1 text-stone-500">{t('teachersSubtitle')}</p>
       </div>
-      <AccountManager accounts={teachers ?? []} mode="teacher" />
+      <AccountManager accounts={teachers ?? []} mode="teacher" classOptions={classOptions} />
     </DashboardShell>
   );
 }

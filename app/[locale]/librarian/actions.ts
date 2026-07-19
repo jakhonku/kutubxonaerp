@@ -134,7 +134,8 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
     user_metadata: {
       full_name: fullName,
       role,
-      class_name: role === 'student' ? className : '',
+      // O'quvchi va o'qituvchiga sinf biriktiriladi; kutubxonachida sinf bo'lmaydi
+      class_name: role === 'librarian' ? '' : className,
       login,
       preferred_locale: locale,
     },
@@ -326,7 +327,7 @@ export async function updateAccount(formData: FormData): Promise<ActionResult> {
     user_metadata: {
       full_name: fullName,
       role,
-      class_name: role === 'student' ? className : '',
+      class_name: role === 'librarian' ? '' : className,
       login,
     },
   };
@@ -344,7 +345,7 @@ export async function updateAccount(formData: FormData): Promise<ActionResult> {
     .update({
       full_name: fullName,
       login,
-      class_name: role === 'student' ? className || null : null,
+      class_name: role === 'librarian' ? null : className || null,
     })
     .eq('id', userId);
 

@@ -28,6 +28,7 @@ import type { Profile, Role } from '@/types/database';
 interface Props {
   accounts: Profile[];
   mode: Role; // yaratiladigan/tahrirlanadigan hisob roli
+  classOptions?: string[]; // tanlash uchun mavjud sinflar (masalan o'qituvchiga o'quvchilar sinflari)
 }
 
 // ExcelJS workbook'ni faylga saqlaydi
@@ -45,7 +46,7 @@ async function saveWorkbook(wb: any, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function AccountManager({ accounts, mode }: Props) {
+export default function AccountManager({ accounts, mode, classOptions }: Props) {
   const t = useTranslations('students');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -53,6 +54,8 @@ export default function AccountManager({ accounts, mode }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const isStudent = mode === 'student';
+  // O'quvchi va o'qituvchiga sinf biriktiriladi; kutubxonachida sinf yo'q
+  const showClass = mode !== 'librarian';
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,13 +68,19 @@ export default function AccountManager({ accounts, mode }: Props) {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportStudentsResult | null>(null);
 
-  // Mavjud sinflar (o'quvchilardan olinadi) — filtr uchun
-  const existingClasses = useMemo(
-    () =>
-      Array.from(new Set(accounts.map((a) => a.class_name?.trim()).filter(Boolean)))
-        .sort((a, b) => (a as string).localeCompare(b as string, undefined, { numeric: true })) as string[],
-    [accounts]
-  );
+  // Mavjud sinflar — hisoblardan + tashqi ro'yxatdan (classOptions) birlashtiriladi
+  const existingClasses = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of accounts) {
+      const c = a.class_name?.trim();
+      if (c) set.add(c);
+    }
+    for (const c of classOptions ?? []) {
+      const v = c.trim();
+      if (v) set.add(v);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [accounts, classOptions]);
 
   function generatePassword(setter: (v: string) => void) {
     const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -199,7 +208,7 @@ export default function AccountManager({ accounts, mode }: Props) {
           <input name="full_name" required className="sfld" />
         </label>
 
-        {isStudent && (
+        {showClass && (
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
             <ClassInput name="class_name" existingClasses={existingClasses} />
@@ -376,6 +385,7 @@ export default function AccountManager({ accounts, mode }: Props) {
           onEdit={setEditing}
           onDelete={handleDelete}
           pending={isPending}
+          showClass={showClass}
         />
       )}
 
@@ -383,7 +393,7 @@ export default function AccountManager({ accounts, mode }: Props) {
       {editing && (
         <EditModal
           account={editing}
-          isStudent={isStudent}
+          showClass={showClass}
           role={mode}
           existingClasses={existingClasses}
           pending={isPending}
@@ -547,11 +557,13 @@ function AccountTable({
   onEdit,
   onDelete,
   pending,
+  showClass = false,
 }: {
   rows: Profile[];
   onEdit: (p: Profile) => void;
   onDelete: (id: string) => void;
   pending: boolean;
+  showClass?: boolean;
 }) {
   const t = useTranslations('students');
   const tc = useTranslations('common');
@@ -562,6 +574,7 @@ function AccountTable({
         <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
           <tr>
             <th className="p-3 font-medium">{t('fullName')}</th>
+            {showClass && <th className="p-3 font-medium">{t('className')}</th>}
             <th className="p-3 font-medium">{t('login')}</th>
             <th className="p-3 font-medium">{tc('actions')}</th>
           </tr>
@@ -570,6 +583,15 @@ function AccountTable({
           {rows.map((s) => (
             <tr key={s.id} className="hover:bg-stone-50">
               <td className="p-3 font-medium text-stone-900">{s.full_name}</td>
+              {showClass && (
+                <td className="p-3 text-stone-600">
+                  {s.class_name ? (
+                    s.class_name
+                  ) : (
+                    <span className="text-stone-400">{t('noClass')}</span>
+                  )}
+                </td>
+              )}
               <td className="p-3 font-mono text-stone-600">{s.login ?? '—'}</td>
               <td className="p-3">
                 <div className="flex items-center gap-1">
@@ -602,7 +624,7 @@ function AccountTable({
 // ---- Tahrirlash oynasi (modal) ----
 function EditModal({
   account,
-  isStudent,
+  showClass,
   role,
   existingClasses,
   pending,
@@ -612,7 +634,7 @@ function EditModal({
   onGenerate,
 }: {
   account: Profile;
-  isStudent: boolean;
+  showClass: boolean;
   role: Role;
   existingClasses: string[];
   pending: boolean;
@@ -654,7 +676,7 @@ function EditModal({
             <input name="full_name" required defaultValue={account.full_name} className="sfld" />
           </label>
 
-          {isStudent && (
+          {showClass && (
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
               <ClassInput

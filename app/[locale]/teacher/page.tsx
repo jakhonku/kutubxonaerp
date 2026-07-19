@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import MyLoans from '@/components/MyLoans';
-import { BookOpen, Library, BookMarked, FileText, ArrowRight } from 'lucide-react';
+import TeacherClassOverview, { type ClassStudentRow } from '@/components/TeacherClassOverview';
+import { BookOpen, Library, BookMarked, FileText, ArrowRight, Users } from 'lucide-react';
 import type { LoanWithRelations } from '@/types/database';
 
 // Ma'lumotlar doim yangi olinsin (Next.js Data Cache o'chirilgan).
@@ -35,10 +36,75 @@ export default async function TeacherDashboard() {
 
   const activeCount = (loans ?? []).filter((l) => l.status === 'active').length;
 
+  // ---- O'z sinfi bo'yicha o'quvchilar holati ----
+  const className = profile.class_name?.trim() || '';
+  let classRows: ClassStudentRow[] = [];
+  if (className) {
+    const { data: classStudents } = await supabase
+      .from('profiles')
+      .select('id, full_name, login')
+      .eq('role', 'student')
+      .eq('class_name', className)
+      .order('full_name', { ascending: true });
+
+    const ids = (classStudents ?? []).map((s) => s.id);
+    if (ids.length > 0) {
+      const [{ data: tbLoans }, { data: bookLoans }] = await Promise.all([
+        supabase
+          .from('textbook_loans')
+          .select('student_id')
+          .eq('status', 'given')
+          .in('student_id', ids),
+        supabase.from('loans').select('user_id, status').in('user_id', ids),
+      ]);
+
+      const tbCount = new Map<string, number>();
+      for (const l of tbLoans ?? []) {
+        tbCount.set(l.student_id, (tbCount.get(l.student_id) ?? 0) + 1);
+      }
+      const bkTotal = new Map<string, number>();
+      const bkActive = new Map<string, number>();
+      for (const l of bookLoans ?? []) {
+        bkTotal.set(l.user_id, (bkTotal.get(l.user_id) ?? 0) + 1);
+        if (l.status === 'active') bkActive.set(l.user_id, (bkActive.get(l.user_id) ?? 0) + 1);
+      }
+
+      classRows = (classStudents ?? []).map((s) => ({
+        id: s.id,
+        full_name: s.full_name,
+        login: s.login,
+        textbooks: tbCount.get(s.id) ?? 0,
+        booksActive: bkActive.get(s.id) ?? 0,
+        booksTotal: bkTotal.get(s.id) ?? 0,
+      }));
+    }
+  }
+
   return (
     <DashboardShell role="teacher">
       <h1 className="mb-1 text-2xl font-bold text-stone-900">{profile.full_name}</h1>
-      <p className="mb-6 text-stone-500">{t('roles.teacher')}</p>
+      <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-stone-500">
+        <span>{t('roles.teacher')}</span>
+        {className && (
+          <>
+            <span className="text-stone-300">·</span>
+            <span className="rounded-md bg-brand-50 px-2 py-0.5 text-sm font-medium text-brand-700">
+              {className}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* O'z sinfi bo'yicha o'quvchilar holati */}
+      {className && (
+        <section className="mb-8">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-stone-900">
+            <Users className="h-5 w-5 text-brand-600" />
+            {t('teacher.classTitle', { class: className })}
+          </h2>
+          <TeacherClassOverview className={className} rows={classRows} />
+        </section>
+      )}
 
       {/* Kutubxona ko'rsatkichlari */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">

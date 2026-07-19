@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import LogoutButton from './LogoutButton';
+import InstallAppButton from './InstallAppButton';
 
 interface NavItem {
   href: string;
@@ -153,6 +154,7 @@ export default function Sidebar({
       </nav>
 
       <div className="mt-4 space-y-3 border-t border-stone-200 pt-4">
+        <InstallAppButton />
         <LanguageSwitcher />
         <LogoutButton />
       </div>
