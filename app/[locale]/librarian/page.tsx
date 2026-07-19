@@ -1,4 +1,5 @@
-import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { fmtDate } from '@/lib/datetime';
 import { redirect, Link } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -70,7 +71,6 @@ export default async function LibrarianDashboard() {
   }
 
   const t = await getTranslations();
-  const format = await getFormatter();
 
   const overdueList = (overdueLoans as LoanWithRelations[]) ?? [];
   const recentList = (recentLoans as LoanWithRelations[]) ?? [];
@@ -154,7 +154,7 @@ export default async function LibrarianDashboard() {
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
-                    {format.dateTime(new Date(loan.due_date), { dateStyle: 'short' })}
+                    {fmtDate(loan.due_date)}
                   </span>
                 </li>
               ))}
@@ -196,7 +196,7 @@ export default async function LibrarianDashboard() {
                       </p>
                       <p className="truncate text-xs text-stone-500">
                         {loan.profiles?.full_name ?? '—'} ·{' '}
-                        {format.dateTime(new Date(loan.borrowed_at), { dateStyle: 'short' })}
+                        {fmtDate(loan.borrowed_at)}
                       </p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${styles[status]}`}>

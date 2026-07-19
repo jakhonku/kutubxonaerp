@@ -47,6 +47,7 @@ export interface Loan {
   due_date: string;
   returned_at: string | null;
   status: LoanStatus;
+  in_library: boolean; // faqat o'quv zalida o'qish uchun (soatlab)
 }
 
 // Join'lar bilan kengaytirilgan turlar
@@ -148,7 +149,11 @@ export interface Database {
       };
       loans: {
         Row: Loan;
-        Insert: Omit<Loan, 'id' | 'borrowed_at'> & { id?: string; borrowed_at?: string };
+        Insert: Omit<Loan, 'id' | 'borrowed_at' | 'in_library'> & {
+          id?: string;
+          borrowed_at?: string;
+          in_library?: boolean;
+        };
         Update: Partial<Loan>;
         Relationships: [];
       };

@@ -1,6 +1,7 @@
 'use client';
 
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { fmtDate } from '@/lib/datetime';
 import { useRouter } from '@/i18n/navigation';
 import { useState, useTransition } from 'react';
 import {
@@ -48,7 +49,6 @@ export default function TextbookCopies({
 }) {
   const t = useTranslations('textbooks');
   const tc = useTranslations('common');
-  const format = useFormatter();
   const router = useRouter();
 
   const [studentId, setStudentId] = useState('');
@@ -225,7 +225,7 @@ export default function TextbookCopies({
                       <div>
                         <p className="font-medium text-stone-900">{c.studentName}</p>
                         <p className="text-xs text-stone-500">
-                          {[c.studentClass, c.givenAt ? format.dateTime(new Date(c.givenAt), { dateStyle: 'short' }) : null]
+                          {[c.studentClass, c.givenAt ? fmtDate(c.givenAt) : null]
                             .filter(Boolean)
                             .join(' · ')}
                         </p>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Clock } from 'lucide-react';
+import { fmtDate, fmtDateTime } from '@/lib/datetime';
 import type { LoanWithRelations } from '@/types/database';
 
 const DAY = 86400000;
@@ -16,7 +17,6 @@ export default function ReturnReminder({
   soonDays?: number;
 }) {
   const t = useTranslations('reminder');
-  const format = useFormatter();
 
   const now = Date.now();
   const startOfToday = new Date();
@@ -33,8 +33,8 @@ export default function ReturnReminder({
 
   if (overdue.length === 0 && soon.length === 0) return null;
 
-  const dueLabel = (iso: string) =>
-    format.dateTime(new Date(iso), { dateStyle: 'medium' });
+  const dueLabel = (l: LoanWithRelations) =>
+    l.in_library ? fmtDateTime(l.due_date) : fmtDate(l.due_date);
 
   const daysOverdue = (iso: string) =>
     Math.max(1, Math.ceil((startOfToday.getTime() - new Date(iso).setHours(0, 0, 0, 0)) / DAY));
@@ -58,7 +58,7 @@ export default function ReturnReminder({
               >
                 <span className="font-medium text-stone-900">{l.books?.title ?? '—'}</span>
                 <span className="text-red-600">
-                  {t('overdueBy', { days: daysOverdue(l.due_date) })} · {dueLabel(l.due_date)}
+                  {t('overdueBy', { days: daysOverdue(l.due_date) })} · {dueLabel(l)}
                 </span>
               </li>
             ))}
@@ -83,7 +83,7 @@ export default function ReturnReminder({
                 >
                   <span className="font-medium text-stone-900">{l.books?.title ?? '—'}</span>
                   <span className="text-amber-600">
-                    {d === 0 ? t('dueToday') : t('dueInDays', { days: d })} · {dueLabel(l.due_date)}
+                    {d === 0 ? t('dueToday') : t('dueInDays', { days: d })} · {dueLabel(l)}
                   </span>
                 </li>
               );

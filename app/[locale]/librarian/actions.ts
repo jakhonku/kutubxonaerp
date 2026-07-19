@@ -32,28 +32,48 @@ export async function deleteBook(id: string) {
 
 export type IssueResult = {
   ok: boolean;
-  message?: 'nobook' | 'nouser' | 'nodue' | 'pastdue' | 'unavailable' | 'duplicate' | string;
+  message?:
+    | 'nobook'
+    | 'nouser'
+    | 'nodue'
+    | 'nohours'
+    | 'pastdue'
+    | 'unavailable'
+    | 'duplicate'
+    | string;
 };
 
 // Kitob berish (loan yaratish) — trigger available_copies ni kamaytiradi.
-// Tekshiruvlar: kitob/foydalanuvchi/sana tanlangan, sana o'tmagan,
-// bo'sh nusxa bor, va shu kitob foydalanuvchida allaqachon faol emas.
+// Ikki rejim:
+//   home  — uyga, kunlab: due_date (sana) tanlanadi.
+//   hall  — o'quv zaliga, soatlab: hours kiritiladi, faqat zalda o'qish (in_library).
 export async function issueLoan(formData: FormData): Promise<IssueResult> {
   const supabase = await assertLibrarian();
 
   const bookId = String(formData.get('book_id') || '');
   const userId = String(formData.get('user_id') || '');
-  const dueDate = String(formData.get('due_date') || '');
+  const mode = String(formData.get('mode') || 'home');
 
   if (!bookId) return { ok: false, message: 'nobook' };
   if (!userId) return { ok: false, message: 'nouser' };
-  if (!dueDate) return { ok: false, message: 'nodue' };
 
-  const due = new Date(dueDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (Number.isNaN(due.getTime()) || due < today) {
-    return { ok: false, message: 'pastdue' };
+  let due: Date;
+  const inLibrary = mode === 'hall';
+
+  if (inLibrary) {
+    // Soatlab — admin necha soatga berishini kiritadi
+    const hours = Number(formData.get('hours') || 0);
+    if (!hours || hours <= 0) return { ok: false, message: 'nohours' };
+    due = new Date(Date.now() + hours * 3600000);
+  } else {
+    const dueDate = String(formData.get('due_date') || '');
+    if (!dueDate) return { ok: false, message: 'nodue' };
+    due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (Number.isNaN(due.getTime()) || due < today) {
+      return { ok: false, message: 'pastdue' };
+    }
   }
 
   // Bo'sh nusxa bormi
@@ -81,6 +101,7 @@ export async function issueLoan(formData: FormData): Promise<IssueResult> {
     user_id: userId,
     due_date: due.toISOString(),
     status: 'active',
+    in_library: inLibrary,
   });
   if (error) return { ok: false, message: error.message };
 

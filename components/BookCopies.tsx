@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { fmtDateTime } from '@/lib/datetime';
 import { useRouter } from '@/i18n/navigation';
 import { addBookCopies, deleteBookCopy, returnByCopy } from '@/app/[locale]/librarian/book-actions';
 import { bookCopyPayload } from '@/lib/qr';
@@ -36,7 +37,6 @@ export default function BookCopies({
   const t = useTranslations('qr');
   const tt = useTranslations('textbooks');
   const tc = useTranslations('common');
-  const format = useFormatter();
   const router = useRouter();
 
   const [numbers, setNumbers] = useState('');
@@ -166,7 +166,7 @@ export default function BookCopies({
               {c.status === 'borrowed' && c.borrowerName && (
                 <p className="text-center text-xs text-stone-500">
                   {c.borrowerName}
-                  {c.dueDate ? ` · ${format.dateTime(new Date(c.dueDate), { dateStyle: 'short', timeStyle: 'short' })}` : ''}
+                  {c.dueDate ? ` · ${fmtDateTime(c.dueDate)}` : ''}
                 </p>
               )}
               <div className="flex gap-1 print:hidden">

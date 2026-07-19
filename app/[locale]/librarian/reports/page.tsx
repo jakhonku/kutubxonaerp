@@ -1,4 +1,5 @@
-import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { fmtDateTime } from '@/lib/datetime';
 import { redirect } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -48,7 +49,6 @@ export default async function ReportsPage() {
   const tLang = await getTranslations('languages');
   const tr = await getTranslations('roles');
   const tl = await getTranslations('loans');
-  const format = await getFormatter();
 
   const books = booksRes.data ?? [];
   const loans = loansRes.data ?? [];
@@ -198,7 +198,7 @@ export default async function ReportsPage() {
           <h1 className="text-2xl font-bold text-stone-900">{t('title')}</h1>
           <p className="mt-1 text-stone-500">{t('subtitle')}</p>
           <p className="mt-1 text-xs text-stone-400">
-            {t('generatedAt')}: {format.dateTime(new Date(), { dateStyle: 'long' })}
+            {t('generatedAt')}: {fmtDateTime(new Date())}
           </p>
         </div>
         <PrintButton />

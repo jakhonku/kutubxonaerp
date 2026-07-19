@@ -1,10 +1,11 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { issueLoan, returnLoan, renewLoan } from '@/app/[locale]/librarian/actions';
-import { RotateCcw, Send, CalendarPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { RotateCcw, Send, CalendarPlus, AlertCircle, CheckCircle2, BookOpen, Home } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import SearchSelect, { type SelectOption } from './SearchSelect';
+import { fmtDate, fmtDateTime } from '@/lib/datetime';
 import type { Book, LoanWithRelations, Profile } from '@/types/database';
 
 type LoanFilter = 'all' | 'active' | 'overdue' | 'returned';
@@ -20,18 +21,24 @@ interface Props {
 
 export default function LoanManager({ loans, students, availableBooks }: Props) {
   const t = useTranslations();
-  const format = useFormatter();
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<LoanFilter>('all');
   const [issueError, setIssueError] = useState('');
   const [issueOk, setIssueOk] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
+  // Berish rejimi: uyga (kunlab) yoki o'quv zaliga (soatlab)
+  const [mode, setMode] = useState<'home' | 'hall'>('home');
+
   // Muddat sanasi: N kundan keyin (standart 14)
   const dateAfter = (days: number) =>
     new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
   const [due, setDue] = useState(() => dateAfter(14));
   const TERMS = [7, 14, 30];
+
+  // O'quv zali uchun soat
+  const [hours, setHours] = useState(2);
+  const HOUR_TERMS = [1, 2, 3];
 
   // Qidiruvli tanlash uchun variantlar
   const studentOptions: SelectOption[] = useMemo(
@@ -77,6 +84,7 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           nobook: t('librarian.selectRequired'),
           nouser: t('librarian.selectRequired'),
           nodue: t('librarian.issuePastDue'),
+          nohours: t('librarian.issueNoHours'),
         };
         setIssueError(map[res.message ?? ''] ?? res.message ?? '');
       }
@@ -162,36 +170,93 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
 
           <label className="block sm:col-span-1">
             <span className="mb-1 block text-sm font-medium text-stone-700">
-              {t('librarian.dueDate')}
+              {mode === 'hall' ? t('librarian.hours') : t('librarian.dueDate')}
             </span>
-            <input
-              name="due_date"
-              type="date"
-              required
-              min={dateAfter(0)}
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-              className="fld"
-            />
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {TERMS.map((d) => {
-                const val = dateAfter(d);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDue(val)}
-                    className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                      due === val
-                        ? 'bg-brand-600 text-white'
-                        : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
-                    }`}
-                  >
-                    {t('librarian.termDays', { days: d })}
-                  </button>
-                );
-              })}
+            {/* Rejim: uyga (kunlab) / o'quv zali (soatlab) */}
+            <input type="hidden" name="mode" value={mode} />
+            <div className="mb-1.5 inline-flex w-full rounded-lg border border-stone-200 p-0.5">
+              <button
+                type="button"
+                onClick={() => setMode('home')}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'home' ? 'bg-brand-600 text-white' : 'text-stone-600 hover:bg-stone-100'
+                }`}
+              >
+                <Home className="h-3.5 w-3.5" />
+                {t('librarian.modeHome')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('hall')}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'hall' ? 'bg-brand-600 text-white' : 'text-stone-600 hover:bg-stone-100'
+                }`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                {t('librarian.modeHall')}
+              </button>
             </div>
+
+            {mode === 'home' ? (
+              <>
+                <input
+                  name="due_date"
+                  type="date"
+                  min={dateAfter(0)}
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  className="fld"
+                />
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {TERMS.map((d) => {
+                    const val = dateAfter(d);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setDue(val)}
+                        className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                          due === val
+                            ? 'bg-brand-600 text-white'
+                            : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
+                        }`}
+                      >
+                        {t('librarian.termDays', { days: d })}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <input
+                  name="hours"
+                  type="number"
+                  min={1}
+                  max={24}
+                  value={hours}
+                  onChange={(e) => setHours(Number(e.target.value) || 1)}
+                  className="fld"
+                />
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {HOUR_TERMS.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setHours(h)}
+                      className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                        hours === h
+                          ? 'bg-brand-600 text-white'
+                          : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      {t('librarian.termHours', { hours: h })}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-amber-600">{t('librarian.hallHint')}</p>
+              </>
+            )}
           </label>
 
           <div className="flex items-start sm:items-end">
@@ -266,13 +331,26 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
                 return (
                   <tr key={loan.id} className="hover:bg-stone-50">
                     <td className="p-3 font-medium text-stone-900">
-                      {loan.books?.title ?? '—'}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {loan.books?.title ?? '—'}
+                        {loan.in_library && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            <BookOpen className="h-3 w-3" />
+                            {t('loans.inLibrary')}
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="p-3 text-stone-600">
                       {loan.profiles?.full_name ?? '—'}
                     </td>
                     <td className="p-3 text-stone-600">
-                      {format.dateTime(new Date(loan.due_date), { dateStyle: 'medium' })}
+                      <div>{loan.in_library ? fmtDateTime(loan.due_date) : fmtDate(loan.due_date)}</div>
+                      {loan.status === 'returned' && loan.returned_at && (
+                        <div className="text-xs text-green-600">
+                          {t('loans.returnedAt')}: {fmtDateTime(loan.returned_at)}
+                        </div>
+                      )}
                     </td>
                     <td className="p-3">
                       <StatusBadge status={overdue ? 'overdue' : loan.status} />
