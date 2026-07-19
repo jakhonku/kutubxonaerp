@@ -21,25 +21,36 @@ export default function NotifyButton() {
   const t = useTranslations('push');
   const [state, setState] = useState<State>('default');
   const [subscribed, setSubscribed] = useState(false);
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const [publicKey, setPublicKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (
       typeof window === 'undefined' ||
       !('serviceWorker' in navigator) ||
       !('PushManager' in window) ||
-      !('Notification' in window) ||
-      !publicKey
+      !('Notification' in window)
     ) {
       setState('unsupported');
       return;
     }
-    setState(Notification.permission as State);
+    // Ochiq kalitni serverdan olamiz (build vaqti o'zgaruvchisiga bog'liq emas)
+    fetch('/api/push/public-key')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.key) {
+          setState('unsupported');
+          return;
+        }
+        setPublicKey(d.key as string);
+        setState(Notification.permission as State);
+      })
+      .catch(() => setState('unsupported'));
+
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setSubscribed(!!sub))
       .catch(() => {});
-  }, [publicKey]);
+  }, []);
 
   async function enable() {
     if (!publicKey) return;
