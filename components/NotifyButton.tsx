@@ -18,7 +18,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 type State = 'unsupported' | 'default' | 'granted' | 'denied' | 'busy';
 
 export default function NotifyButton() {
-  const t = useTranslations('push');
+  const t = useTranslations('pwa');
   const [state, setState] = useState<State>('default');
   const [subscribed, setSubscribed] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
