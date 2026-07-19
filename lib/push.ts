@@ -3,17 +3,28 @@ import webpush from 'web-push';
 // VAPID sozlamalari (bir marta). Kalitlar env'da bo'lishi shart.
 let configured = false;
 
+// Ochiq kalit: server uchun oddiy VAPID_PUBLIC_KEY (runtime) afzal;
+// bo'lmasa NEXT_PUBLIC_VAPID_PUBLIC_KEY (build vaqti) ishlatiladi.
+export function getPublicKey(): string | undefined {
+  return process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+}
+
+export function hasPublicKey(): boolean {
+  return Boolean(getPublicKey());
+}
+export function hasPrivateKey(): boolean {
+  return Boolean(process.env.VAPID_PRIVATE_KEY);
+}
+
 export function isPushConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
-  );
+  return hasPublicKey() && hasPrivateKey();
 }
 
 export function getWebPush() {
   if (!configured) {
     webpush.setVapidDetails(
       process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      getPublicKey()!,
       process.env.VAPID_PRIVATE_KEY!
     );
     configured = true;

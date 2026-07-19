@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { sendPush, isPushConfigured, type PushPayload } from '@/lib/push';
+import {
+  sendPush,
+  isPushConfigured,
+  hasPublicKey,
+  hasPrivateKey,
+  type PushPayload,
+} from '@/lib/push';
 
 // Node runtime kerak (web-push).
 export const dynamic = 'force-dynamic';
@@ -34,7 +40,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
   if (!isPushConfigured()) {
-    return NextResponse.json({ ok: false, error: 'push_not_configured' }, { status: 500 });
+    // Diagnostika: qaysi kalit yetishmayotganini ko'rsatamiz (qiymatlar emas, faqat bor/yo'q)
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'push_not_configured',
+        hasPublicKey: hasPublicKey(),
+        hasPrivateKey: hasPrivateKey(),
+      },
+      { status: 500 }
+    );
   }
 
   const admin = createServiceClient();
