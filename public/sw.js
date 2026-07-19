@@ -1,5 +1,5 @@
 // Oddiy service worker — PWA o'rnatilishi va offlayn asosiy ishlashi uchun.
-const CACHE = 'kutubxona-v1';
+const CACHE = 'kutubxona-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -12,6 +12,44 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+// ---- Push bildirishnomalari ----
+self.addEventListener('push', (event) => {
+  let data = { title: 'Kutubxona', body: '', url: '/', tag: 'kutubxona' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.jpg',
+      badge: '/icon-192.jpg',
+      tag: data.tag,
+      data: { url: data.url || '/' },
+      requireInteraction: false,
+    })
+  );
+});
+
+// Bildirishnoma bosilganda — ilovani ochamiz (ochiq bo'lsa fokuslaymiz)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
 });
 
 // Faqat GET so'rovlar uchun: tarmoq birinchi, uzilsa keshdan.

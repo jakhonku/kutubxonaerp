@@ -26,6 +26,7 @@ import {
 import LanguageSwitcher from './LanguageSwitcher';
 import LogoutButton from './LogoutButton';
 import InstallAppButton from './InstallAppButton';
+import NotifyButton from './NotifyButton';
 
 interface NavItem {
   href: string;
@@ -155,6 +156,7 @@ export default function Sidebar({
 
       <div className="mt-4 space-y-3 border-t border-stone-200 pt-4">
         <InstallAppButton />
+        <NotifyButton />
         <LanguageSwitcher />
         <LogoutButton />
       </div>

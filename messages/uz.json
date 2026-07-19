@@ -476,7 +476,10 @@
     "installMobile": "Mobil ilova yuklash",
     "installedNote": "Ilova o'rnatilgan",
     "iosHint": "Pastdagi «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish»ni tanlang.",
-    "androidHint": "Brauzer menyusini oching va «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang."
+    "androidHint": "Brauzer menyusini oching va «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang.",
+    "enable": "Bildirishnomani yoqish",
+    "enabled": "Bildirishnoma yoqilgan",
+    "blocked": "Bildirishnoma bloklangan — brauzer sozlamalaridan ruxsat bering"
   },
   "reminder": {
     "returnNow": "Kitobni qaytaring!",

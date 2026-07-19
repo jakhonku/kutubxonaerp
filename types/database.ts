@@ -120,6 +120,17 @@ export interface InventoryEntry {
   created_at: string;
 }
 
+// Web Push obunasi (foydalanuvchi qurilmasi)
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -163,6 +174,12 @@ export interface Database {
         Row: InventoryEntry;
         Insert: Omit<InventoryEntry, 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<InventoryEntry>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionRow;
+        Insert: Omit<PushSubscriptionRow, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<PushSubscriptionRow>;
         Relationships: [];
       };
     };
