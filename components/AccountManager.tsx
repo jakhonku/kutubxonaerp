@@ -201,15 +201,17 @@ export default function AccountManager({ accounts, mode, classOptions }: Props) 
       <form
         ref={formRef}
         action={handleCreate}
-        className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-2 lg:grid-cols-5"
+        className={`grid items-start gap-4 rounded-2xl border border-stone-200 bg-white p-6 sm:grid-cols-2 ${
+          isStudent ? 'lg:grid-cols-5' : ''
+        }`}
       >
-        <label className="block lg:col-span-2">
+        <label className={`block ${isStudent ? 'lg:col-span-2' : 'sm:col-span-2'}`}>
           <span className="mb-1 block text-sm font-medium text-stone-700">{t('fullName')}</span>
           <input name="full_name" required className="sfld" />
         </label>
 
         {showClass && (
-          <label className={`block ${isStudent ? '' : 'lg:col-span-2'}`}>
+          <label className={`block ${isStudent ? '' : 'sm:col-span-2'}`}>
             <span className="mb-1 block text-sm font-medium text-stone-700">
               {isStudent ? t('className') : t('classNameMulti')}
             </span>
@@ -248,7 +250,7 @@ export default function AccountManager({ accounts, mode, classOptions }: Props) 
           </div>
         </label>
 
-        <div className="sm:col-span-2 lg:col-span-5">
+        <div className={`sm:col-span-2 ${isStudent ? 'lg:col-span-5' : ''}`}>
           {error && !editing && (
             <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
