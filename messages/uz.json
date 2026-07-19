@@ -315,6 +315,8 @@
     "empty": "Hozircha hech kim yo'q",
     "noClass": "Sinfsiz",
     "newClass": "Yangi sinf",
+    "classNameMulti": "Sinf(lar) — bir nechtasini tanlash mumkin",
+    "newClassPlaceholder": "Yangi sinf (masalan 6-B)",
     "fromList": "Ro'yxatdan tanlash",
     "filterByClass": "Sinf bo'yicha",
     "generate": "Avtomatik parol",

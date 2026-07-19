@@ -5,6 +5,7 @@ export interface ClassStudentRow {
   id: string;
   full_name: string;
   login: string | null;
+  class_name: string; // o'quvchining sinfi (guruhlash uchun)
   textbooks: number; // berilgan darsliklar soni
   booksActive: number; // hozir o'qiyotgan (faol ijara) kitoblar
   booksTotal: number; // jami olgan kitoblari

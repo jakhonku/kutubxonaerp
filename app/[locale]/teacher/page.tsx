@@ -36,15 +36,19 @@ export default async function TeacherDashboard() {
 
   const activeCount = (loans ?? []).filter((l) => l.status === 'active').length;
 
-  // ---- O'z sinfi bo'yicha o'quvchilar holati ----
-  const className = profile.class_name?.trim() || '';
+  // ---- O'z sinf(lar)i bo'yicha o'quvchilar holati ----
+  // O'qituvchida bir nechta sinf bo'lishi mumkin: "5-A, 6-B"
+  const classes = (profile.class_name ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   let classRows: ClassStudentRow[] = [];
-  if (className) {
+  if (classes.length > 0) {
     const { data: classStudents } = await supabase
       .from('profiles')
-      .select('id, full_name, login')
+      .select('id, full_name, login, class_name')
       .eq('role', 'student')
-      .eq('class_name', className)
+      .in('class_name', classes)
       .order('full_name', { ascending: true });
 
     const ids = (classStudents ?? []).map((s) => s.id);
@@ -73,6 +77,7 @@ export default async function TeacherDashboard() {
         id: s.id,
         full_name: s.full_name,
         login: s.login,
+        class_name: s.class_name ?? '',
         textbooks: tbCount.get(s.id) ?? 0,
         booksActive: bkActive.get(s.id) ?? 0,
         booksTotal: bkTotal.get(s.id) ?? 0,
@@ -85,26 +90,29 @@ export default async function TeacherDashboard() {
       <h1 className="mb-1 text-2xl font-bold text-stone-900">{profile.full_name}</h1>
       <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-stone-500">
         <span>{t('roles.teacher')}</span>
-        {className && (
-          <>
-            <span className="text-stone-300">·</span>
-            <span className="rounded-md bg-brand-50 px-2 py-0.5 text-sm font-medium text-brand-700">
-              {className}
-            </span>
-          </>
-        )}
+        {classes.map((c) => (
+          <span
+            key={c}
+            className="rounded-md bg-brand-50 px-2 py-0.5 text-sm font-medium text-brand-700"
+          >
+            {c}
+          </span>
+        ))}
       </div>
 
-      {/* O'z sinfi bo'yicha o'quvchilar holati */}
-      {className && (
-        <section className="mb-8">
+      {/* Har bir sinf bo'yicha o'quvchilar holati */}
+      {classes.map((c) => (
+        <section key={c} className="mb-8">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-stone-900">
             <Users className="h-5 w-5 text-brand-600" />
-            {t('teacher.classTitle', { class: className })}
+            {t('teacher.classTitle', { class: c })}
           </h2>
-          <TeacherClassOverview className={className} rows={classRows} />
+          <TeacherClassOverview
+            className={c}
+            rows={classRows.filter((r) => r.class_name === c)}
+          />
         </section>
-      )}
+      ))}
 
       {/* Kutubxona ko'rsatkichlari */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3">

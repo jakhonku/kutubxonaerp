@@ -209,9 +209,15 @@ export default function AccountManager({ accounts, mode, classOptions }: Props) 
         </label>
 
         {showClass && (
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-            <ClassInput name="class_name" existingClasses={existingClasses} />
+          <label className={`block ${isStudent ? '' : 'lg:col-span-2'}`}>
+            <span className="mb-1 block text-sm font-medium text-stone-700">
+              {isStudent ? t('className') : t('classNameMulti')}
+            </span>
+            {isStudent ? (
+              <ClassInput name="class_name" existingClasses={existingClasses} />
+            ) : (
+              <MultiClassInput name="class_name" existingClasses={existingClasses} />
+            )}
           </label>
         )}
 
@@ -437,6 +443,98 @@ export default function AccountManager({ accounts, mode, classOptions }: Props) 
   );
 }
 
+// ---- Ko'p sinf tanlash (o'qituvchi uchun) — teglar + yangi sinf qo'shish ----
+function MultiClassInput({
+  name,
+  existingClasses,
+  defaultValue,
+}: {
+  name: string;
+  existingClasses: string[];
+  defaultValue?: string;
+}) {
+  const t = useTranslations('students');
+  const parse = (v: string) =>
+    v.split(',').map((s) => s.trim()).filter(Boolean);
+
+  const initial = parse(defaultValue ?? '');
+  const [selected, setSelected] = useState<string[]>(initial);
+  const [options, setOptions] = useState<string[]>(() =>
+    Array.from(new Set([...existingClasses, ...initial])).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    )
+  );
+  const [newCls, setNewCls] = useState('');
+
+  function toggle(c: string) {
+    setSelected((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  }
+  function addNew() {
+    const v = newCls.trim();
+    if (!v) return;
+    setOptions((prev) =>
+      prev.includes(v)
+        ? prev
+        : [...prev, v].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    );
+    setSelected((prev) => (prev.includes(v) ? prev : [...prev, v]));
+    setNewCls('');
+  }
+
+  return (
+    <div>
+      {/* Hidden — forma bilan yuboriladigan qiymat: "5-A, 6-B" */}
+      <input type="hidden" name={name} value={selected.join(', ')} />
+
+      {options.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {options.map((c) => {
+            const on = selected.includes(c);
+            return (
+              <button
+                type="button"
+                key={c}
+                onClick={() => toggle(c)}
+                className={`rounded-lg border px-2.5 py-1 text-sm transition-colors ${
+                  on
+                    ? 'border-brand-600 bg-brand-600 text-white'
+                    : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-1">
+        <input
+          value={newCls}
+          onChange={(e) => setNewCls(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addNew();
+            }
+          }}
+          placeholder={t('newClassPlaceholder')}
+          autoComplete="off"
+          className="sfld"
+        />
+        <button
+          type="button"
+          onClick={addNew}
+          title={t('newClass')}
+          className="shrink-0 rounded-lg border border-stone-200 px-3 text-stone-500 transition-colors hover:bg-stone-50"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---- Sinf tanlash: mavjudlar ro'yxati + "Yangi sinf" ----
 function ClassInput({
   name,
@@ -586,7 +684,20 @@ function AccountTable({
               {showClass && (
                 <td className="p-3 text-stone-600">
                   {s.class_name ? (
-                    s.class_name
+                    <span className="flex flex-wrap gap-1">
+                      {s.class_name
+                        .split(',')
+                        .map((c) => c.trim())
+                        .filter(Boolean)
+                        .map((c) => (
+                          <span
+                            key={c}
+                            className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                    </span>
                   ) : (
                     <span className="text-stone-400">{t('noClass')}</span>
                   )}
@@ -678,12 +789,22 @@ function EditModal({
 
           {showClass && (
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-stone-700">{t('className')}</span>
-              <ClassInput
-                name="class_name"
-                existingClasses={existingClasses}
-                defaultValue={account.class_name ?? ''}
-              />
+              <span className="mb-1 block text-sm font-medium text-stone-700">
+                {role === 'student' ? t('className') : t('classNameMulti')}
+              </span>
+              {role === 'student' ? (
+                <ClassInput
+                  name="class_name"
+                  existingClasses={existingClasses}
+                  defaultValue={account.class_name ?? ''}
+                />
+              ) : (
+                <MultiClassInput
+                  name="class_name"
+                  existingClasses={existingClasses}
+                  defaultValue={account.class_name ?? ''}
+                />
+              )}
             </label>
           )}
 

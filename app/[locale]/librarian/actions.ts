@@ -84,6 +84,16 @@ export async function renewLoan(loanId: string, days = 14) {
   revalidatePath('/librarian/loans');
 }
 
+// Sinf ro'yxatini normallashtiradi: "5-A , 6-B ," -> "5-A, 6-B"
+// (o'quvchi uchun bitta qiymat o'zgarishsiz qoladi)
+function normClasses(raw: string): string {
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
 export type ActionResult = {
   ok: boolean;
   error?: 'taken' | 'name' | 'generic';
@@ -96,7 +106,8 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   await assertLibrarian();
 
   const fullName = String(formData.get('full_name') || '').trim();
-  const className = String(formData.get('class_name') || '').trim();
+  // Sinf(lar) — o'qituvchida vergulli ro'yxat bo'lishi mumkin ("5-A, 6-B")
+  const className = normClasses(String(formData.get('class_name') || ''));
   const login = String(formData.get('login') || '').trim().toLowerCase();
   const password = String(formData.get('password') || '');
   const locale = (String(formData.get('locale') || 'uz') as AppLocale) || 'uz';
@@ -282,7 +293,7 @@ export async function updateAccount(formData: FormData): Promise<ActionResult> {
 
   const userId = String(formData.get('user_id') || '');
   const fullName = String(formData.get('full_name') || '').trim();
-  const className = String(formData.get('class_name') || '').trim();
+  const className = normClasses(String(formData.get('class_name') || ''));
   const login = String(formData.get('login') || '').trim().toLowerCase();
   const password = String(formData.get('password') || '');
 
