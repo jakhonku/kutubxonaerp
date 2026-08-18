@@ -316,6 +316,7 @@
     "pages": "Бет саны",
     "series": "Серия",
     "callNumber": "Жіктеу нөмірі (ӘОЖ)",
+    "callNumberShort": "Жіктеу",
     "inventoryNumber": "Түгендеу нөмірі",
     "sectionMain": "Негізгі мәлімет",
     "sectionBiblio": "Библиографиялық мәлімет",

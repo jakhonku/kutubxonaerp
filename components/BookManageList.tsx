@@ -2,24 +2,94 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Trash2, BookOpen, FileText, Pencil, QrCode as QrCodeIcon } from 'lucide-react';
-import { useTransition } from 'react';
+import { Trash2, BookOpen, FileText, Pencil, QrCode as QrCodeIcon, Library } from 'lucide-react';
+import { useMemo, useState, useTransition } from 'react';
 import { deleteBook } from '@/app/[locale]/librarian/actions';
-import type { Book } from '@/types/database';
+import type { Book, BookType } from '@/types/database';
+
+// Turi bo'yicha filtr: hammasi / oddiy kitob / PDF kitob
+type TypeFilter = 'all' | BookType;
 
 export default function BookManageList({ books }: { books: Book[] }) {
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
+  const [filter, setFilter] = useState<TypeFilter>('all');
 
   function handleDelete(id: string) {
     if (!confirm(t('librarian.confirmDelete'))) return;
     startTransition(() => deleteBook(id));
   }
 
-  if (books.length === 0) {
-    return <p className="text-stone-500">{t('common.noResults')}</p>;
-  }
+  const counts = useMemo(
+    () => ({
+      all: books.length,
+      physical: books.filter((b) => b.type === 'physical').length,
+      ebook: books.filter((b) => b.type === 'ebook').length,
+    }),
+    [books]
+  );
 
+  const shown = useMemo(
+    () => (filter === 'all' ? books : books.filter((b) => b.type === filter)),
+    [books, filter]
+  );
+
+  const FILTERS: { key: TypeFilter; label: string; icon: typeof BookOpen }[] = [
+    { key: 'all', label: t('common.all'), icon: Library },
+    { key: 'physical', label: t('book.physical'), icon: BookOpen },
+    { key: 'ebook', label: t('book.ebook'), icon: FileText },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Turi bo'yicha filtr — PDF kitoblar va oddiy kitoblar alohida ko'rinadi */}
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const Icon = f.icon;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                filter === f.key
+                  ? 'bg-brand-600 text-white'
+                  : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {f.label}
+              <span
+                className={`rounded-full px-1.5 text-xs ${
+                  filter === f.key ? 'bg-white/25' : 'bg-stone-100 text-stone-500'
+                }`}
+              >
+                {counts[f.key]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="text-stone-500">{t('common.noResults')}</p>
+      ) : (
+        <BooksTable books={shown} isPending={isPending} onDelete={handleDelete} t={t} />
+      )}
+    </div>
+  );
+}
+
+function BooksTable({
+  books,
+  isPending,
+  onDelete,
+  t,
+}: {
+  books: Book[];
+  isPending: boolean;
+  onDelete: (id: string) => void;
+  t: ReturnType<typeof useTranslations>;
+}) {
   return (
     <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
       <table className="w-full text-sm">
@@ -27,6 +97,7 @@ export default function BookManageList({ books }: { books: Book[] }) {
           <tr>
             <th className="p-3 font-medium">{t('book.title')}</th>
             <th className="p-3 font-medium">{t('book.author')}</th>
+            <th className="p-3 font-medium">{t('book.callNumberShort')}</th>
             <th className="p-3 font-medium">{t('book.type')}</th>
             <th className="p-3 font-medium">{t('book.availableCopies')}</th>
             <th className="p-3 font-medium">{t('common.actions')}</th>
@@ -37,6 +108,7 @@ export default function BookManageList({ books }: { books: Book[] }) {
             <tr key={book.id} className="hover:bg-stone-50">
               <td className="p-3 font-medium text-stone-900">{book.title}</td>
               <td className="p-3 text-stone-600">{book.author ?? '—'}</td>
+              <td className="p-3 text-stone-600">{book.call_number || '—'}</td>
               <td className="p-3">
                 <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
                   {book.type === 'ebook' ? (
@@ -71,7 +143,7 @@ export default function BookManageList({ books }: { books: Book[] }) {
                     <Pencil className="h-4 w-4" />
                   </Link>
                   <button
-                    onClick={() => handleDelete(book.id)}
+                    onClick={() => onDelete(book.id)}
                     disabled={isPending}
                     className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                     title={t('common.delete')}

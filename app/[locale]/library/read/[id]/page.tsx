@@ -42,7 +42,14 @@ export default async function ReadBookPage({
             <ArrowLeft className="h-4 w-4" />
             {t('common.back')}
           </Link>
-          <h1 className="font-semibold text-stone-900">{book.title}</h1>
+          <div>
+            <h1 className="font-semibold text-stone-900">{book.title}</h1>
+            {book.call_number && (
+              <p className="text-xs text-stone-500">
+                {t('book.callNumberShort')}: {book.call_number}
+              </p>
+            )}
+          </div>
         </div>
         {book.downloadable && (
           <a

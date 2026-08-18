@@ -100,7 +100,7 @@ export default function NewBookForm() {
         language: text('language'),
         pages: num('pages'),
         series: text('series'),
-        call_number: type === 'physical' ? text('call_number') : null,
+        call_number: text('call_number'),
         inventory_number: type === 'physical' ? text('inventory_number') : null,
       });
 
@@ -221,6 +221,10 @@ export default function NewBookForm() {
         <Field label={t('book.series')}>
           <input name="series" className="fld" />
         </Field>
+        {/* Tasnif (DDK) — PDF kitob uchun ham kerak */}
+        <Field label={t('book.callNumber')}>
+          <input name="call_number" placeholder="84.5" className="fld" />
+        </Field>
       </div>
 
       {/* Nusxa va joylashuv / PDF */}
@@ -229,9 +233,6 @@ export default function NewBookForm() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('book.shelfLocation')}>
             <input name="shelf_location" placeholder="A-12" className="fld" />
-          </Field>
-          <Field label={t('book.callNumber')}>
-            <input name="call_number" placeholder="84.5" className="fld" />
           </Field>
           <Field label={t('book.inventoryNumber')}>
             <input name="inventory_number" placeholder="0001234" className="fld" />

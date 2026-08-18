@@ -115,7 +115,7 @@ export default function EditBookForm({ book }: { book: Book }) {
           language: text('language'),
           pages: num('pages'),
           series: text('series'),
-          call_number: book.type === 'physical' ? text('call_number') : null,
+          call_number: text('call_number'),
           inventory_number: book.type === 'physical' ? text('inventory_number') : null,
         })
         .eq('id', book.id);
@@ -234,6 +234,10 @@ export default function EditBookForm({ book }: { book: Book }) {
         <Field label={t('book.series')}>
           <input name="series" defaultValue={book.series ?? ''} className="fld" />
         </Field>
+        {/* Tasnif (DDK) — PDF kitob uchun ham kerak */}
+        <Field label={t('book.callNumber')}>
+          <input name="call_number" defaultValue={book.call_number ?? ''} className="fld" />
+        </Field>
       </div>
 
       <Section title={t('book.sectionCopy')} />
@@ -246,9 +250,6 @@ export default function EditBookForm({ book }: { book: Book }) {
               defaultValue={book.shelf_location ?? ''}
               className="fld"
             />
-          </Field>
-          <Field label={t('book.callNumber')}>
-            <input name="call_number" defaultValue={book.call_number ?? ''} className="fld" />
           </Field>
           <Field label={t('book.inventoryNumber')}>
             <input

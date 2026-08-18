@@ -2,11 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { BookOpen, Download, MapPin } from 'lucide-react';
+import { BookOpen, Download, MapPin, Hash } from 'lucide-react';
 import type { Book } from '@/types/database';
 
 export default function BookCard({ book }: { book: Book }) {
   const t = useTranslations('library');
+  const tb = useTranslations('book');
   const available = book.available_copies > 0;
   const total = book.total_copies ?? 0;
   const taken = Math.max(total - (book.available_copies ?? 0), 0);
@@ -37,6 +38,13 @@ export default function BookCard({ book }: { book: Book }) {
           <span className="mt-2 w-fit rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700">
             {book.category}
           </span>
+        )}
+        {/* Tasnif (DDK) — oddiy kitob ham, PDF kitob ham ko'rsatadi */}
+        {book.call_number && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-stone-500">
+            <Hash className="h-3.5 w-3.5 text-stone-400" />
+            {tb('callNumberShort')}: <span className="font-medium text-stone-700">{book.call_number}</span>
+          </p>
         )}
 
         <div className="mt-auto pt-4">

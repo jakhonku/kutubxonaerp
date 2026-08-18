@@ -316,6 +316,7 @@
     "pages": "Sahifalar soni",
     "series": "Turkum",
     "callNumber": "Tasnif raqami (DDK)",
+    "callNumberShort": "Tasnif",
     "inventoryNumber": "Inventar raqami",
     "sectionMain": "Asosiy ma'lumot",
     "sectionBiblio": "Bibliografik ma'lumot",
