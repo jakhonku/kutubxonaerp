@@ -44,8 +44,8 @@ export type IssueResult = {
 };
 
 // Kitob berish (loan yaratish) — trigger available_copies ni kamaytiradi.
-// Ikki rejim:
-//   home  — uyga, kunlab: due_date (sana) tanlanadi.
+// Ikki rejim (muddat uchun yuqori chegara yo'q — kutubxonachi xohlagan vaqtini beradi):
+//   home  — uyga, kunlab: due_date (sana) + ixtiyoriy due_time (soat:daqiqa).
 //   hall  — o'quv zaliga, soatlab: hours kiritiladi, faqat zalda o'qish (in_library).
 export async function issueLoan(formData: FormData): Promise<IssueResult> {
   const supabase = await assertLibrarian();
@@ -61,17 +61,19 @@ export async function issueLoan(formData: FormData): Promise<IssueResult> {
   const inLibrary = mode === 'hall';
 
   if (inLibrary) {
-    // Soatlab — admin necha soatga berishini kiritadi
+    // Soatlab — kutubxonachi necha soatga berishini o'zi kiritadi (chegara yo'q)
     const hours = Number(formData.get('hours') || 0);
-    if (!hours || hours <= 0) return { ok: false, message: 'nohours' };
+    if (!Number.isFinite(hours) || hours <= 0) return { ok: false, message: 'nohours' };
     due = new Date(Date.now() + hours * 3600000);
   } else {
+    // Kunlab — sana va (ixtiyoriy) aniq soat. Vaqt Toshkent mintaqasida o'qiladi.
     const dueDate = String(formData.get('due_date') || '');
     if (!dueDate) return { ok: false, message: 'nodue' };
-    due = new Date(dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (Number.isNaN(due.getTime()) || due < today) {
+    const raw = String(formData.get('due_time') || '').trim();
+    const time = /^\d{2}:\d{2}$/.test(raw) ? raw : '23:59';
+    due = new Date(`${dueDate}T${time}:00+05:00`);
+    // Faqat o'tib ketgan vaqt taqiqlanadi; qancha uzoqqa berish — kutubxonachi ixtiyorida
+    if (Number.isNaN(due.getTime()) || due.getTime() < Date.now()) {
       return { ok: false, message: 'pastdue' };
     }
   }

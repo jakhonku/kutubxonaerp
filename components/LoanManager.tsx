@@ -48,15 +48,17 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   // Berish rejimi: uyga (kunlab) yoki o'quv zaliga (soatlab)
   const [mode, setMode] = useState<'home' | 'hall'>('home');
 
-  // Muddat sanasi: N kundan keyin (standart 14)
+  // Muddat sanasi: N kundan keyin (standart 14). Sana ham, soat ham erkin tanlanadi.
   const dateAfter = (days: number) =>
     new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
   const [due, setDue] = useState(() => dateAfter(14));
-  const TERMS = [7, 14, 30];
+  // Kun ichidagi aniq vaqt (Toshkent). Standart — kun oxiri.
+  const [dueTime, setDueTime] = useState('23:59');
+  const TERMS = [1, 7, 14, 30, 90];
 
-  // O'quv zali uchun soat
+  // O'quv zali uchun soat — tugmalar shunchaki tezkor tanlov, qo'lda istalgancha yozsa bo'ladi
   const [hours, setHours] = useState(2);
-  const HOUR_TERMS = [1, 2, 3];
+  const HOUR_TERMS = [1, 2, 3, 6, 12, 24];
 
   // Qidiruvli tanlash uchun variantlar
   const studentOptions: SelectOption[] = useMemo(
@@ -110,7 +112,9 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
         label: isHall ? t('librarian.issueTerm') : t('librarian.dueDate'),
         value: isHall
           ? t('librarian.termHours', { hours: Number(fd.get('hours') || 0) })
-          : fmtDate(String(fd.get('due_date') || '')),
+          : fmtDateTime(
+              `${String(fd.get('due_date') || '')}T${String(fd.get('due_time') || '23:59')}:00+05:00`
+            ),
       },
     ];
   }
@@ -124,6 +128,7 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
       if (res.ok) {
         setIssueOk(true);
         setDue(dateAfter(14));
+        setDueTime('23:59');
         setFormKey((k) => k + 1); // formani tozalash uchun qayta yuklaymiz
       } else {
         const map: Record<string, string> = {
@@ -295,14 +300,25 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
 
             {mode === 'home' ? (
               <>
-                <input
-                  name="due_date"
-                  type="date"
-                  min={dateAfter(0)}
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                  className="fld"
-                />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    name="due_date"
+                    type="date"
+                    min={dateAfter(0)}
+                    value={due}
+                    onChange={(e) => setDue(e.target.value)}
+                    className="fld"
+                    title={t('librarian.dueDate')}
+                  />
+                  <input
+                    name="due_time"
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => setDueTime(e.target.value || '23:59')}
+                    className="fld"
+                    title={t('librarian.dueTime')}
+                  />
+                </div>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {TERMS.map((d) => {
                     const val = dateAfter(d);
@@ -329,7 +345,7 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
                   name="hours"
                   type="number"
                   min={1}
-                  max={24}
+                  step={1}
                   value={hours}
                   onChange={(e) => setHours(Number(e.target.value) || 1)}
                   className="fld"
