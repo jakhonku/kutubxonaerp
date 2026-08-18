@@ -7,6 +7,7 @@ import { lookupCopy, issueByCopy, type LookupCopy } from '@/app/[locale]/librari
 import { parseQr } from '@/lib/qr';
 import QrScanner from './QrScanner';
 import SearchSelect, { type SelectOption } from './SearchSelect';
+import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
 import {
   ScanLine,
   BookCheck,
@@ -29,8 +30,12 @@ type Unit = 'min' | 'hour' | 'day';
 
 export default function QrIssue({ users }: { users: UserLite[] }) {
   const t = useTranslations('qr');
+  const tl = useTranslations('librarian');
+  const tb = useTranslations('book');
+  const tls = useTranslations('loans');
   const router = useRouter();
 
+  const [ask, setAsk] = useState(false);
   const [scan, setScan] = useState<'book' | 'user' | null>(null);
   const [copy, setCopy] = useState<LookupCopy | null>(null);
   const [userId, setUserId] = useState('');
@@ -79,12 +84,30 @@ export default function QrIssue({ users }: { users: UserLite[] }) {
     }
   }
 
-  function handleIssue() {
+  // Tasdiqlash oynasida ko'rsatiladigan berish tafsilotlari
+  function issueDetails(): ConfirmDetail[] {
+    return [
+      {
+        label: tb('title'),
+        value: `${copy?.title ?? '—'}${copy?.copyNumber ? ` · #${copy.copyNumber}` : ''}`,
+      },
+      {
+        label: tls('borrower'),
+        value: `${selectedUser?.full_name ?? '—'}${
+          selectedUser?.class_name ? ` · ${selectedUser.class_name}` : ''
+        }`,
+      },
+      { label: tl('issueTerm'), value: `${Math.max(1, durVal)} ${t(`unit_${unit}`)}` },
+    ];
+  }
+
+  function confirmIssue() {
     if (!copy?.copyId || !userId) return;
     setMsg(null);
     const minutes = Math.max(1, durVal) * unitMinutes[unit];
     startTransition(async () => {
       const res = await issueByCopy(copy.copyId!, userId, minutes);
+      setAsk(false);
       if (res.ok) {
         setMsg({ type: 'ok', text: t('issued') });
         setCopy(null);
@@ -208,7 +231,7 @@ export default function QrIssue({ users }: { users: UserLite[] }) {
       </Step>
 
       <button
-        onClick={handleIssue}
+        onClick={() => setAsk(true)}
         disabled={!canIssue}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
       >
@@ -218,6 +241,19 @@ export default function QrIssue({ users }: { users: UserLite[] }) {
       {copy?.status === 'borrowed' && (
         <p className="text-center text-sm text-amber-600">{t('copyBorrowedHint')}</p>
       )}
+
+      {/* Berishni tasdiqlash — skaner xato o'qigan bo'lsa shu yerda ko'rinadi */}
+      <ConfirmDialog
+        open={ask}
+        title={tl('confirmIssueTitle')}
+        message={tl('confirmIssueText')}
+        details={issueDetails()}
+        confirmLabel={tl('confirmIssueBtn')}
+        tone="brand"
+        pending={isPending}
+        onConfirm={confirmIssue}
+        onCancel={() => setAsk(false)}
+      />
     </div>
   );
 }

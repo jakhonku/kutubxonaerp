@@ -39,7 +39,8 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   const [issueOk, setIssueOk] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
-  // Qaytarish / uzaytirish — avval tasdiqlanadi, keyin bajariladi
+  // Berish / qaytarish / uzaytirish — avval tasdiqlanadi, keyin bajariladi
+  const [askIssue, setAskIssue] = useState<FormData | null>(null);
   const [ask, setAsk] = useState<{ kind: 'return' | 'renew'; loan: LoanWithRelations } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -80,6 +81,7 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
     [availableBooks]
   );
 
+  // Forma yuborilganda darrov bermaydi — avval tasdiqlash oynasi
   function handleIssue(fd: FormData) {
     setIssueError('');
     setIssueOk(false);
@@ -87,8 +89,38 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
       setIssueError(t('librarian.selectRequired'));
       return;
     }
+    setAskIssue(fd);
+  }
+
+  // Tanlangan qiymatni o'qiladigan nomga aylantiradi
+  const labelOf = (opts: SelectOption[], id: unknown) =>
+    opts.find((o) => o.id === String(id ?? ''))?.label ?? '—';
+
+  // Tasdiqlash oynasida ko'rsatiladigan berish tafsilotlari
+  function issueDetails(fd: FormData): ConfirmDetail[] {
+    const isHall = String(fd.get('mode') || 'home') === 'hall';
+    return [
+      { label: t('book.title'), value: labelOf(bookOptions, fd.get('book_id')) },
+      { label: t('loans.borrower'), value: labelOf(studentOptions, fd.get('user_id')) },
+      {
+        label: t('librarian.issueMode'),
+        value: isHall ? t('librarian.modeHall') : t('librarian.modeHome'),
+      },
+      {
+        label: isHall ? t('librarian.issueTerm') : t('librarian.dueDate'),
+        value: isHall
+          ? t('librarian.termHours', { hours: Number(fd.get('hours') || 0) })
+          : fmtDate(String(fd.get('due_date') || '')),
+      },
+    ];
+  }
+
+  function confirmIssue() {
+    const fd = askIssue;
+    if (!fd) return;
     startTransition(async () => {
       const res = await issueLoan(fd);
+      setAskIssue(null);
       if (res.ok) {
         setIssueOk(true);
         setDue(dateAfter(14));
@@ -196,9 +228,13 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   return (
     <div className="space-y-8">
       {/* Kitob berish formasi — qidiruvli tanlash */}
+      {/* action= o'rniga onSubmit: tasdiqlash oynasi ochilganda forma tozalanmaydi */}
       <form
         key={formKey}
-        action={handleIssue}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleIssue(new FormData(e.currentTarget));
+        }}
         className="rounded-2xl border border-stone-200 bg-white p-6"
       >
         <div className="grid gap-4 sm:grid-cols-4">
@@ -465,6 +501,19 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           </table>
         </div>
       )}
+
+      {/* Kitob berishni tasdiqlash */}
+      <ConfirmDialog
+        open={askIssue !== null}
+        title={t('librarian.confirmIssueTitle')}
+        message={t('librarian.confirmIssueText')}
+        details={askIssue ? issueDetails(askIssue) : undefined}
+        confirmLabel={t('librarian.confirmIssueBtn')}
+        tone="brand"
+        pending={isPending}
+        onConfirm={confirmIssue}
+        onCancel={() => setAskIssue(null)}
+      />
 
       {/* Tasdiqlash oynasi — bitta tasodifiy bosishdan himoya */}
       <ConfirmDialog
