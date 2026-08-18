@@ -20,6 +20,11 @@ export const metadata: Metadata = {
     title: 'Kutubxona',
   },
   icons: {
+    icon: [
+      { url: '/apple-touch-icon.jpg' },
+      { url: '/favicon.ico' }
+    ],
+    shortcut: '/apple-touch-icon.jpg',
     apple: '/apple-touch-icon.jpg',
   },
   // Yangi standart teg (apple-mobile-web-app-capable eskirgan)

@@ -22,7 +22,7 @@ function HomeContent() {
       {/* Header */}
       <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 p-4 sm:p-6">
         <div className="flex min-w-0 items-center gap-2">
-          <Library className="h-6 w-6 shrink-0 text-brand-600 sm:h-7 sm:w-7" />
+          <img src="/apple-touch-icon.jpg" alt="Logo" className="h-7 w-7 shrink-0 rounded-md object-contain sm:h-8 sm:w-8" />
           <span className="truncate text-base font-bold text-stone-900 sm:text-lg">
             {t('common.appName')}
           </span>

@@ -46,7 +46,7 @@ export default function DashboardShell({
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <Library className="h-6 w-6 text-brand-600" />
+            <img src="/apple-touch-icon.jpg" alt="Logo" className="h-6 w-6 rounded object-contain" />
             <span className="font-bold text-stone-900">{t('appName')}</span>
           </div>
         </header>

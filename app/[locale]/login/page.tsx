@@ -54,7 +54,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-stone-50 p-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center">
-          <Library className="h-10 w-10 text-brand-600" />
+          <img src="/apple-touch-icon.jpg" alt="Logo" className="h-16 w-16 rounded-xl object-contain shadow-sm" />
           <h1 className="mt-3 text-2xl font-bold text-stone-900">
             {t('auth.loginTitle')}
           </h1>
