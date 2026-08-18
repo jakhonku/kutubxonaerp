@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   icons: {
     apple: '/apple-touch-icon.jpg',
   },
+  // Yangi standart teg (apple-mobile-web-app-capable eskirgan)
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {

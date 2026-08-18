@@ -2,7 +2,7 @@
 
 Maktab kutubxonasi uchun zamonaviy, minimalistik veb-ilova. Ikki tilli interfeys: **o'zbek (lotin)** va **qozoq (kirill)**.
 
-- **Jismoniy kitoblar** — javondagi kitoblar mavjudligini va joyini qidirish
+- **Kitoblar** — javondagi kitoblar mavjudligini va joyini qidirish
 - **Elektron kutubxona** — PDF kitoblarni onlayn o'qish / yuklab olish
 - **3 rol** — kutubxonachi, o'qituvchi, o'quvchi (har biriga alohida panel)
 
@@ -71,7 +71,7 @@ Birinchi foydalanuvchini `/uz/register` orqali **Kutubxonachi** rolida yarating.
 | `/[locale]/librarian/loans` | Kitob berish / qaytarish |
 | `/[locale]/librarian/users` | Foydalanuvchilar |
 | `/[locale]/teacher`, `/student` | O'qituvchi / o'quvchi paneli |
-| `/[locale]/library/physical` | Jismoniy kitoblarni qidirish |
+| `/[locale]/library/physical` | Kitoblarni qidirish |
 | `/[locale]/library/digital` | Elektron kutubxona |
 | `/[locale]/library/read/[id]` | PDF onlayn o'qish |
 

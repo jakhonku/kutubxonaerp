@@ -61,37 +61,39 @@ function itemsForRole(role: Role): NavItem[] {
   const search: NavItem = { href: '/search', labelKey: 'search', icon: Search };
 
   if (role === 'teacher') {
+    // `/teacher` — o'qituvchining shaxsiy sahifasi (olgan kitoblari shu yerda)
     return [
+      { href: '/teacher', labelKey: 'home', icon: LayoutDashboard },
       search,
-      { href: '/teacher', labelKey: 'dashboard', icon: LayoutDashboard },
       physical,
       digital,
-      { href: '/teacher', labelKey: 'myBooks', icon: BookMarked },
     ];
   }
   // student
   return [
+    { href: '/student', labelKey: 'home', icon: LayoutDashboard },
     search,
-    { href: '/student', labelKey: 'dashboard', icon: LayoutDashboard },
     { href: '/student/textbooks', labelKey: 'myTextbooks', icon: BookCopy },
     physical,
     digital,
   ];
 }
 
+// Menyu nomlari — hammasi `nav.*` da, sahifa sarlavhalaridan mustaqil
 const LABELS: Record<string, string> = {
-  search: 'search.nav',
+  search: 'nav.search',
+  home: 'nav.home',
   dashboard: 'nav.dashboard',
   books: 'nav.books',
-  addBook: 'librarian.addBook',
-  qrIssue: 'qr.navIssue',
-  inventory: 'inventory.title',
-  summary: 'summary.title',
+  addBook: 'nav.addBook',
+  qrIssue: 'nav.qrIssue',
+  inventory: 'nav.inventory',
+  summary: 'nav.summary',
   loans: 'nav.loans',
-  textbookFund: 'textbooks.fund',
-  textbookDistribute: 'textbooks.distribute',
-  myTextbooks: 'textbooks.myTextbooks',
-  reports: 'reports.title',
+  textbookFund: 'nav.textbookFund',
+  textbookDistribute: 'nav.textbookDistribute',
+  myTextbooks: 'nav.myTextbooks',
+  reports: 'nav.reports',
   students: 'nav.students',
   teachers: 'nav.teachers',
   librarians: 'nav.librarians',
@@ -141,11 +143,10 @@ export default function Sidebar({
               key={`${item.href}-${i}`}
               href={item.href}
               onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                active
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active
                   ? 'bg-brand-50 font-medium text-brand-700'
                   : 'text-stone-600 hover:bg-stone-100'
-              }`}
+                }`}
             >
               <Icon className="h-5 w-5" />
               {t(LABELS[item.labelKey])}
