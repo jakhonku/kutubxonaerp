@@ -109,40 +109,74 @@ export async function issueLoan(formData: FormData): Promise<IssueResult> {
   return { ok: true };
 }
 
-// Kitobni qaytarish — trigger available_copies ni oshiradi
-export async function returnLoan(loanId: string) {
+export type LoanActionResult = {
+  ok: boolean;
+  error?: 'notfound' | 'notactive' | 'generic';
+  message?: string;
+  newDue?: string;
+};
+
+// Kitobni qaytarish — trigger available_copies ni oshiradi.
+// Faqat 'active' yozuvga ta'sir qiladi: takroriy bosish qayta ishlamaydi.
+export async function returnLoan(loanId: string): Promise<LoanActionResult> {
   const supabase = await assertLibrarian();
-  await supabase
+
+  const { data: loan } = await supabase
+    .from('loans')
+    .select('id, status')
+    .eq('id', loanId)
+    .maybeSingle();
+
+  if (!loan) return { ok: false, error: 'notfound' };
+  if ((loan as { status: string }).status !== 'active') {
+    return { ok: false, error: 'notactive' };
+  }
+
+  // .eq('status','active') — poyga holatida ikki marta yozilmasligi uchun
+  const { data: updated, error } = await supabase
     .from('loans')
     .update({ status: 'returned', returned_at: new Date().toISOString() })
-    .eq('id', loanId);
+    .eq('id', loanId)
+    .eq('status', 'active')
+    .select('id');
+
+  if (error) return { ok: false, error: 'generic', message: error.message };
+  if (!updated || updated.length === 0) return { ok: false, error: 'notactive' };
 
   revalidatePath('/librarian/loans');
+  return { ok: true };
 }
 
 // Ijara muddatini uzaytirish — joriy muddat (yoki bugundan) N kun qo'shiladi
-export async function renewLoan(loanId: string, days = 14) {
+export async function renewLoan(loanId: string, days = 14): Promise<LoanActionResult> {
   const supabase = await assertLibrarian();
 
   const { data } = await supabase
     .from('loans')
-    .select('due_date')
+    .select('due_date, status')
     .eq('id', loanId)
-    .single();
+    .maybeSingle();
 
-  const base = (data as { due_date?: string } | null)?.due_date
-    ? new Date((data as { due_date: string }).due_date)
-    : new Date();
+  if (!data) return { ok: false, error: 'notfound' };
+  const loan = data as { due_date?: string; status: string };
+  // Qaytarilgan kitobning muddatini uzaytirib bo'lmaydi
+  if (loan.status !== 'active') return { ok: false, error: 'notactive' };
+
+  const base = loan.due_date ? new Date(loan.due_date) : new Date();
   // Muddat o'tib ketgan bo'lsa — bugundan boshlaymiz
   const start = Math.max(base.getTime(), Date.now());
   const newDue = new Date(start + days * 86400000).toISOString();
 
-  await supabase
+  const { error } = await supabase
     .from('loans')
-    .update({ due_date: newDue, status: 'active' })
-    .eq('id', loanId);
+    .update({ due_date: newDue })
+    .eq('id', loanId)
+    .eq('status', 'active');
+
+  if (error) return { ok: false, error: 'generic', message: error.message };
 
   revalidatePath('/librarian/loans');
+  return { ok: true, newDue };
 }
 
 // Sinf ro'yxatini normallashtiradi: "5-A , 6-B ," -> "5-A, 6-B"

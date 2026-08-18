@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/navigation';
 import { addBookCopies, deleteBookCopy, returnByCopy } from '@/app/[locale]/librarian/book-actions';
 import { bookCopyPayload } from '@/lib/qr';
 import QrCode from './QrCode';
+import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
 import {
   Plus,
   Trash2,
@@ -15,6 +16,7 @@ import {
   Printer,
   AlertCircle,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 export interface BookCopyRow {
@@ -37,11 +39,17 @@ export default function BookCopies({
   const t = useTranslations('qr');
   const tt = useTranslations('textbooks');
   const tc = useTranslations('common');
+  const tl = useTranslations('librarian');
+  const tb = useTranslations('book');
   const router = useRouter();
 
   const [numbers, setNumbers] = useState('');
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Qaytarish / o'chirish — avval tasdiqlanadi
+  const [ask, setAsk] = useState<{ kind: 'return' | 'delete'; copy: BookCopyRow } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const total = copies.length;
   const borrowed = copies.filter((c) => c.status === 'borrowed').length;
@@ -61,21 +69,39 @@ export default function BookCopies({
     });
   }
 
-  function handleDelete(copyId: string) {
+  // Tasdiqlash oynasidagi "Ha" bosilgandagina bajariladi
+  function confirmAction() {
+    if (!ask) return;
+    const { kind, copy } = ask;
     setMsg(null);
+    setBusyId(copy.id);
     startTransition(async () => {
-      const res = await deleteBookCopy(copyId);
-      if (!res.ok && res.error === 'borrowed')
-        setMsg({ type: 'err', text: t('cantDeleteBorrowed') });
+      const res = kind === 'delete' ? await deleteBookCopy(copy.id) : await returnByCopy(copy.id);
+      setBusyId(null);
+      setAsk(null);
+      if (res.ok) {
+        setMsg({ type: 'ok', text: kind === 'delete' ? tc('delete') : t('returnedOk') });
+      } else {
+        const errors: Record<string, string> = {
+          borrowed: t('cantDeleteBorrowed'),
+          notborrowed: t('notBorrowed'),
+          nocopy: tl('errNotFound'),
+        };
+        setMsg({ type: 'err', text: errors[res.error ?? ''] ?? res.message ?? tl('errGeneric') });
+      }
       router.refresh();
     });
   }
 
-  function handleReturn(copyId: string) {
-    startTransition(async () => {
-      await returnByCopy(copyId);
-      router.refresh();
-    });
+  // Tasdiqlash oynasida ko'rsatiladigan aniq ma'lumotlar
+  function askDetails(copy: BookCopyRow): ConfirmDetail[] {
+    const rows: ConfirmDetail[] = [
+      { label: tb('title'), value: bookTitle },
+      { label: t('copyNumberLabel'), value: copy.copy_number ? `#${copy.copy_number}` : copy.id.slice(0, 8) },
+    ];
+    if (copy.borrowerName) rows.push({ label: tt('holder'), value: copy.borrowerName });
+    if (copy.dueDate) rows.push({ label: tl('dueDate'), value: fmtDateTime(copy.dueDate) });
+    return rows;
   }
 
   return (
@@ -172,16 +198,20 @@ export default function BookCopies({
               <div className="flex gap-1 print:hidden">
                 {c.status === 'borrowed' ? (
                   <button
-                    onClick={() => handleReturn(c.id)}
+                    onClick={() => setAsk({ kind: 'return', copy: c })}
                     disabled={isPending}
                     className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-600 hover:bg-stone-50 disabled:opacity-50"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    {busyId === c.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    )}
                     {tt('returnBook')}
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleDelete(c.id)}
+                    onClick={() => setAsk({ kind: 'delete', copy: c })}
                     disabled={isPending}
                     className="rounded-lg p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
                     title={tc('delete')}
@@ -194,6 +224,19 @@ export default function BookCopies({
           ))}
         </div>
       )}
+
+      {/* Tasdiqlash oynasi — bitta tasodifiy bosishdan himoya */}
+      <ConfirmDialog
+        open={ask !== null}
+        title={ask?.kind === 'delete' ? t('confirmDeleteCopyTitle') : tl('confirmReturnTitle')}
+        message={ask?.kind === 'delete' ? t('confirmDeleteCopyText') : tl('confirmReturnText')}
+        details={ask ? askDetails(ask.copy) : undefined}
+        confirmLabel={ask?.kind === 'delete' ? tc('delete') : tl('confirmReturnBtn')}
+        tone="danger"
+        pending={isPending}
+        onConfirm={confirmAction}
+        onCancel={() => setAsk(null)}
+      />
     </div>
   );
 }

@@ -140,15 +140,20 @@ export async function issueByCopy(
   return { ok: true };
 }
 
-// QR orqali (yoki nusxa bo'yicha) qaytarib olish
+// QR orqali (yoki nusxa bo'yicha) qaytarib olish.
+// Faqat berilgan nusxaga ta'sir qiladi — takroriy bosish qayta ishlamaydi.
 export async function returnByCopy(copyId: string): Promise<CopyResult> {
   const supabase = await assertLibrarian();
 
   const { data: copy } = await supabase
     .from('book_copies')
-    .select('book_id')
+    .select('book_id, status')
     .eq('id', copyId)
-    .single();
+    .maybeSingle();
+
+  if (!copy) return { ok: false, error: 'nocopy' };
+  const c = copy as { book_id: string; status: string };
+  if (c.status !== 'borrowed') return { ok: false, error: 'notborrowed' };
 
   const { data: loan } = await supabase
     .from('loans')
@@ -158,15 +163,22 @@ export async function returnByCopy(copyId: string): Promise<CopyResult> {
     .maybeSingle();
 
   if (loan) {
-    await supabase
+    const { error } = await supabase
       .from('loans')
       .update({ status: 'returned', returned_at: new Date().toISOString() })
-      .eq('id', (loan as { id: string }).id);
+      .eq('id', (loan as { id: string }).id)
+      .eq('status', 'active');
+    if (error) return { ok: false, error: 'generic', message: error.message };
   }
-  await supabase.from('book_copies').update({ status: 'available' }).eq('id', copyId);
 
-  const bookId = (copy as { book_id?: string } | null)?.book_id;
-  if (bookId) revalidatePath(`/librarian/books/${bookId}`);
+  const { error: copyErr } = await supabase
+    .from('book_copies')
+    .update({ status: 'available' })
+    .eq('id', copyId)
+    .eq('status', 'borrowed');
+  if (copyErr) return { ok: false, error: 'generic', message: copyErr.message };
+
+  revalidatePath(`/librarian/books/${c.book_id}`);
   revalidatePath('/librarian/loans');
   return { ok: true };
 }

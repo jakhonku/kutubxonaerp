@@ -2,11 +2,23 @@
 
 import { useTranslations } from 'next-intl';
 import { issueLoan, returnLoan, renewLoan } from '@/app/[locale]/librarian/actions';
-import { RotateCcw, Send, CalendarPlus, AlertCircle, CheckCircle2, BookOpen, Home } from 'lucide-react';
+import {
+  RotateCcw,
+  Send,
+  CalendarPlus,
+  AlertCircle,
+  CheckCircle2,
+  BookOpen,
+  Home,
+  Loader2,
+} from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import SearchSelect, { type SelectOption } from './SearchSelect';
+import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
 import { fmtDate, fmtDateTime } from '@/lib/datetime';
 import type { Book, LoanWithRelations, Profile } from '@/types/database';
+
+const RENEW_DAYS = 14;
 
 type LoanFilter = 'all' | 'active' | 'overdue' | 'returned';
 
@@ -26,6 +38,11 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
   const [issueError, setIssueError] = useState('');
   const [issueOk, setIssueOk] = useState(false);
   const [formKey, setFormKey] = useState(0);
+
+  // Qaytarish / uzaytirish — avval tasdiqlanadi, keyin bajariladi
+  const [ask, setAsk] = useState<{ kind: 'return' | 'renew'; loan: LoanWithRelations } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [rowMsg, setRowMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Berish rejimi: uyga (kunlab) yoki o'quv zaliga (soatlab)
   const [mode, setMode] = useState<'home' | 'hall'>('home');
@@ -91,12 +108,55 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
     });
   }
 
-  function handleReturn(id: string) {
-    startTransition(() => returnLoan(id));
+  // Server javobidagi xato kodini o'qiladigan matnga aylantiradi
+  function errText(error?: string) {
+    const map: Record<string, string> = {
+      notactive: t('librarian.errNotActive'),
+      notfound: t('librarian.errNotFound'),
+      generic: t('librarian.errGeneric'),
+    };
+    return map[error ?? ''] ?? t('librarian.errGeneric');
   }
 
-  function handleRenew(id: string) {
-    startTransition(() => renewLoan(id));
+  // Tasdiqlash oynasidagi "Ha" bosilgandagina amal bajariladi
+  function confirmAction() {
+    if (!ask) return;
+    const { kind, loan } = ask;
+    setRowMsg(null);
+    setBusyId(loan.id);
+    startTransition(async () => {
+      const res = kind === 'return' ? await returnLoan(loan.id) : await renewLoan(loan.id, RENEW_DAYS);
+      setBusyId(null);
+      setAsk(null);
+      if (res.ok) {
+        setRowMsg({
+          type: 'ok',
+          text: kind === 'return' ? t('librarian.returnDone') : t('librarian.renewDone'),
+        });
+      } else {
+        setRowMsg({ type: 'err', text: errText(res.error) });
+      }
+    });
+  }
+
+  // Tasdiqlash oynasida ko'rsatiladigan aniq ma'lumotlar
+  function askDetails(loan: LoanWithRelations): ConfirmDetail[] {
+    const rows: ConfirmDetail[] = [
+      { label: t('book.title'), value: loan.books?.title ?? '—' },
+      { label: t('loans.borrower'), value: loan.profiles?.full_name ?? '—' },
+      {
+        label: t('librarian.dueDate'),
+        value: loan.in_library ? fmtDateTime(loan.due_date) : fmtDate(loan.due_date),
+      },
+    ];
+    if (ask?.kind === 'renew') {
+      const base = Math.max(new Date(loan.due_date).getTime(), Date.now());
+      rows.push({
+        label: t('librarian.newDueDate'),
+        value: fmtDate(new Date(base + RENEW_DAYS * 86400000).toISOString()),
+      });
+    }
+    return rows;
   }
 
   const isOverdue = (l: LoanWithRelations) =>
@@ -309,6 +369,22 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
         ))}
       </div>
 
+      {/* Qaytarish / uzaytirish natijasi */}
+      {rowMsg && (
+        <div
+          className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
+            rowMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}
+        >
+          {rowMsg.type === 'ok' ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0" />
+          )}
+          {rowMsg.text}
+        </div>
+      )}
+
       {/* Berilgan kitoblar ro'yxati */}
       {filteredLoans.length === 0 ? (
         <p className="text-stone-500">{t('loans.empty')}</p>
@@ -359,15 +435,19 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
                       {loan.status === 'active' && (
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleReturn(loan.id)}
+                            onClick={() => setAsk({ kind: 'return', loan })}
                             disabled={isPending}
                             className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            {busyId === loan.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4" />
+                            )}
                             {t('librarian.returnBook')}
                           </button>
                           <button
-                            onClick={() => handleRenew(loan.id)}
+                            onClick={() => setAsk({ kind: 'renew', loan })}
                             disabled={isPending}
                             className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
                             title={t('librarian.renew')}
@@ -385,6 +465,31 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           </table>
         </div>
       )}
+
+      {/* Tasdiqlash oynasi — bitta tasodifiy bosishdan himoya */}
+      <ConfirmDialog
+        open={ask !== null}
+        title={
+          ask?.kind === 'renew'
+            ? t('librarian.confirmRenewTitle')
+            : t('librarian.confirmReturnTitle')
+        }
+        message={
+          ask?.kind === 'renew'
+            ? t('librarian.confirmRenewText', { days: RENEW_DAYS })
+            : t('librarian.confirmReturnText')
+        }
+        details={ask ? askDetails(ask.loan) : undefined}
+        confirmLabel={
+          ask?.kind === 'renew'
+            ? t('librarian.confirmRenewBtn')
+            : t('librarian.confirmReturnBtn')
+        }
+        tone={ask?.kind === 'renew' ? 'brand' : 'danger'}
+        pending={isPending}
+        onConfirm={confirmAction}
+        onCancel={() => setAsk(null)}
+      />
 
       <style jsx global>{`
         .fld {

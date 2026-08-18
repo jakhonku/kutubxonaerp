@@ -19,6 +19,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
+import ConfirmDialog from './ConfirmDialog';
 import type { Textbook } from '@/types/database';
 
 interface StudentLite {
@@ -55,6 +56,9 @@ export default function TextbookDistribute({ students, textbooks, givenLoans, cl
   const [openStudent, setOpenStudent] = useState('');
   const [msg, setMsg] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Qaytarib olish — avval tasdiqlanadi
+  const [ask, setAsk] = useState<{ loan: GivenLoan; studentName: string } | null>(null);
 
   // Har o'quvchining darsliklari (loan'lar)
   const loansByStudent = useMemo(() => {
@@ -132,10 +136,15 @@ export default function TextbookDistribute({ students, textbooks, givenLoans, cl
     });
   }
 
-  function handleReturn(loanId: string) {
+  // Tasdiqlash oynasidagi "Ha" bosilgandagina qaytariladi
+  function confirmReturn() {
+    if (!ask) return;
+    const loanId = ask.loan.id;
     setMsg(null);
     startTransition(async () => {
-      await returnTextbook(loanId);
+      const res = await returnTextbook(loanId);
+      setAsk(null);
+      if (!res.ok) setMsg({ type: 'err', text: res.message || '' });
       refresh();
     });
   }
@@ -372,7 +381,7 @@ export default function TextbookDistribute({ students, textbooks, givenLoans, cl
                                           ) : null}
                                         </p>
                                         <button
-                                          onClick={() => handleReturn(h.id)}
+                                          onClick={() => setAsk({ loan: h, studentName: s.full_name })}
                                           disabled={isPending}
                                           className="flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50"
                                         >
@@ -396,6 +405,29 @@ export default function TextbookDistribute({ students, textbooks, givenLoans, cl
           </div>
         )}
       </div>
+
+      {/* Tasdiqlash oynasi — bitta tasodifiy bosishdan himoya */}
+      <ConfirmDialog
+        open={ask !== null}
+        title={t('confirmReturnTitle')}
+        message={t('confirmReturnText')}
+        details={
+          ask
+            ? [
+                { label: t('bookTitle'), value: ask.loan.textbooks?.title ?? '—' },
+                ...(ask.loan.textbook_copies?.number
+                  ? [{ label: t('copyNumber'), value: `#${ask.loan.textbook_copies.number}` }]
+                  : []),
+                { label: t('student'), value: ask.studentName },
+              ]
+            : undefined
+        }
+        confirmLabel={t('confirmReturnBtn')}
+        tone="danger"
+        pending={isPending}
+        onConfirm={confirmReturn}
+        onCancel={() => setAsk(null)}
+      />
     </div>
   );
 }
