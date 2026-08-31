@@ -540,7 +540,11 @@
     "androidHint": "Brauzer menyusini oching va «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»ni tanlang.",
     "enable": "Bildirishnomani yoqish",
     "enabled": "Bildirishnoma yoqilgan",
-    "blocked": "Bildirishnoma bloklangan — brauzer sozlamalaridan ruxsat bering"
+    "blocked": "Bildirishnoma bloklangan — brauzer sozlamalaridan ruxsat bering",
+    "installDesktop": "Kompyuterga ilova yuklash",
+    "desktopHint": "Chrome/Edge manzil satrining o'ng tomonidagi ⊕ (o'rnatish) belgisini bosing yoki menyudan «Ilovani o'rnatish» ni tanlang.",
+    "safariHint": "Safari menyusidan «Fayl → Dock'ga qo'shish» ni tanlang.",
+    "firefoxHint": "Firefox ilova o'rnatishni qo'llab-quvvatlamaydi — saytni Chrome yoki Edge brauzerida oching."
   },
   "reminder": {
     "returnNow": "Kitobni qaytaring!",

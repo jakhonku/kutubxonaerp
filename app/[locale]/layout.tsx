@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import PwaRegister from '@/components/PwaRegister';
+import PwaInstallCapture from '@/components/PwaInstallCapture';
 import '../globals.css';
 
 // Inter — lotin va kirill belgilarini to'liq qo'llab-quvvatlaydi
@@ -21,11 +22,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/apple-touch-icon.jpg' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/favicon.ico' }
     ],
-    shortcut: '/apple-touch-icon.jpg',
-    apple: '/apple-touch-icon.jpg',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   // Yangi standart teg (apple-mobile-web-app-capable eskirgan)
   other: {
@@ -61,6 +62,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <body className={inter.className}>
+        <PwaInstallCapture />
         <NextIntlClientProvider messages={messages}>
           {children}
           <PwaRegister />
