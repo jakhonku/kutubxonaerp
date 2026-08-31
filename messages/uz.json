@@ -269,7 +269,15 @@
     "selectAll": "Hammasini belgilash",
     "clearAll": "Belgilashni bekor qilish",
     "noBooksFound": "Kitob topilmadi",
-    "noInventoryNumber": "Inventar raqami kiritilmagan"
+    "noInventoryNumber": "Inventar raqami kiritilmagan",
+    "modeDevice": "Skaner apparati",
+    "modeCamera": "Kamera",
+    "close": "Yopish",
+    "deviceHint": "QR kodni skaner apparatiga tuting — u o'zi o'qiydi va tasdiqlaydi.",
+    "devicePlaceholder": "Skanerlang yoki kodni qo'lda kiritib Enter bosing",
+    "deviceManualHint": "Skaner ulanmagan bo'lsa, yuqoridagi «Kamera» ni tanlang.",
+    "deviceReady": "USB skaner ulangan bo'lsa — QR kodni to'g'ridan-to'g'ri skanerlayvering, oyna ochish shart emas.",
+    "unknownQr": "QR kod tanilmadi — bu tizim kodi emas yoki noto'g'ri o'qildi"
   },
   "summary": {
     "title": "Jamlanma hisob kitobi",

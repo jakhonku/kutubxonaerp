@@ -15,16 +15,33 @@ export type ParsedQr =
   | { kind: 'us'; id: string }
   | { kind: 'unknown' };
 
-// Skanerlangan matnni tahlil qiladi
+// QR ichidagi id — uuid (book_copies.id / profiles.id)
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+// Skanerlangan matnni tahlil qiladi.
+// USB (klaviatura) skanerlari matnni tugma bosish sifatida "yozadi" — kirill
+// harflari yoki klaviatura tili mos kelmasa JSON qismi buzilishi mumkin.
+// Shu sabab JSON o'qilmasa, k va uuid'ni matndan qidirib topamiz.
 export function parseQr(text: string): ParsedQr {
+  const raw = (text ?? '').trim();
+  if (!raw) return { kind: 'unknown' };
+
   try {
-    const o = JSON.parse(text);
+    const o = JSON.parse(raw);
     if (o && (o.k === 'bc' || o.k === 'us') && typeof o.id === 'string') {
       return { kind: o.k, id: o.id };
     }
   } catch {
-    // JSON emas — id sifatida qabul qilmaymiz
+    // JSON buzilgan — pastdagi zaxira usulga o'tamiz
   }
+
+  // Zaxira: "k" dan keyingi bc/us va matndagi birinchi uuid
+  const kindMatch = /k\W{0,4}(bc|us)\b/i.exec(raw);
+  const idMatch = UUID_RE.exec(raw);
+  if (kindMatch && idMatch) {
+    return { kind: kindMatch[1].toLowerCase() as 'bc' | 'us', id: idMatch[0].toLowerCase() };
+  }
+
   return { kind: 'unknown' };
 }
 

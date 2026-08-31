@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { lookupCopy, issueByCopy, type LookupCopy } from '@/app/[locale]/librarian/book-actions';
 import { parseQr } from '@/lib/qr';
-import QrScanner from './QrScanner';
+import ScanBox from './ScanBox';
+import { useHardwareScanner } from '@/lib/useHardwareScanner';
 import SearchSelect, { type SelectOption } from './SearchSelect';
 import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
 import {
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   AlertCircle,
   QrCode as QrIcon,
+  Usb,
 } from 'lucide-react';
 
 interface UserLite {
@@ -55,34 +57,50 @@ export default function QrIssue({ users }: { users: UserLite[] }) {
 
   const unitMinutes: Record<Unit, number> = { min: 1, hour: 60, day: 1440 };
 
-  function handleScan(text: string) {
-    const parsed = parseQr(text);
-    if (scan === 'book') {
-      setScan(null);
-      if (parsed.kind !== 'bc') {
-        setMsg({ type: 'err', text: t('notBookQr') });
-        return;
-      }
+  function applyBook(copyId: string) {
+    setMsg(null);
+    startTransition(async () => {
+      const res = await lookupCopy(copyId);
+      if (res.ok) setCopy(res);
+      else setMsg({ type: 'err', text: t('copyNotFound') });
+    });
+  }
+
+  function applyUser(id: string) {
+    if (userMap.has(id)) {
+      setUserId(id);
       setMsg(null);
-      startTransition(async () => {
-        const res = await lookupCopy(parsed.id);
-        if (res.ok) setCopy(res);
-        else setMsg({ type: 'err', text: t('copyNotFound') });
-      });
-    } else if (scan === 'user') {
-      setScan(null);
-      if (parsed.kind !== 'us') {
-        setMsg({ type: 'err', text: t('notUserQr') });
-        return;
-      }
-      if (userMap.has(parsed.id)) {
-        setUserId(parsed.id);
-        setMsg(null);
-      } else {
-        setMsg({ type: 'err', text: t('userNotFound') });
-      }
+    } else {
+      setMsg({ type: 'err', text: t('userNotFound') });
     }
   }
+
+  // QR turiga qarab o'zi kerakli qadamga joylashtiradi
+  function routeScan(text: string) {
+    const parsed = parseQr(text);
+    if (parsed.kind === 'bc') return applyBook(parsed.id);
+    if (parsed.kind === 'us') return applyUser(parsed.id);
+    setMsg({ type: 'err', text: t('unknownQr') });
+  }
+
+  // Skaner oynasi ochiq: qaysi qadam so'ralgan bo'lsa, shuni tekshiramiz
+  function handleScan(text: string) {
+    const want = scan;
+    const parsed = parseQr(text);
+    setScan(null);
+    if (want === 'book' && parsed.kind !== 'bc') {
+      setMsg({ type: 'err', text: t('notBookQr') });
+      return;
+    }
+    if (want === 'user' && parsed.kind !== 'us') {
+      setMsg({ type: 'err', text: t('notUserQr') });
+      return;
+    }
+    routeScan(text);
+  }
+
+  // Oyna ochilmagan bo'lsa ham USB skaner apparati to'g'ridan-to'g'ri ishlaydi
+  useHardwareScanner(routeScan, { enabled: !scan });
 
   // Tasdiqlash oynasida ko'rsatiladigan berish tafsilotlari
   function issueDetails(): ConfirmDetail[] {
@@ -141,9 +159,18 @@ export default function QrIssue({ users }: { users: UserLite[] }) {
         </div>
       )}
 
-      {/* Skaner ochilganda */}
-      {scan && (
-        <QrScanner onScan={handleScan} onClose={() => setScan(null)} />
+      {/* Skaner ochilganda — apparat yoki kamera */}
+      {scan ? (
+        <ScanBox
+          title={scan === 'book' ? t('scanBook') : t('scanUser')}
+          onScan={handleScan}
+          onClose={() => setScan(null)}
+        />
+      ) : (
+        <p className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-500">
+          <Usb className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+          {t('deviceReady')}
+        </p>
       )}
 
       {/* 1-qadam: kitob */}
