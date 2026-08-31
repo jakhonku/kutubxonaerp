@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { syncBookCopies } from '@/app/[locale]/librarian/book-actions';
 import { getErrorMessage, storageKey } from '@/lib/utils';
 import { LANGUAGE_CODES } from '@/lib/constants';
 import { AlertCircle, Image as ImageIcon, X } from 'lucide-react';
@@ -121,6 +122,13 @@ export default function EditBookForm({ book }: { book: Book }) {
         .eq('id', book.id);
 
       if (updateError) throw updateError;
+
+      // Nusxa soni oshirilgan bo'lsa — yetishmayotgan nusxalarga QR yaratamiz.
+      // Kamaytirilganda mavjud nusxalar (va QR) o'chirilmaydi.
+      if (book.type === 'physical') {
+        const res = await syncBookCopies(book.id);
+        if (!res.ok) throw new Error(res.message || t('librarian.errGeneric'));
+      }
 
       router.push('/librarian/books');
       router.refresh();

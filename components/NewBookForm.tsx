@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { syncBookCopies } from '@/app/[locale]/librarian/book-actions';
 import { getErrorMessage, storageKey } from '@/lib/utils';
 import { LANGUAGE_CODES } from '@/lib/constants';
 import { AlertCircle, Image as ImageIcon, X } from 'lucide-react';
@@ -80,7 +81,7 @@ export default function NewBookForm() {
         return v ? Number(v) : null;
       };
 
-      const { error: insertError } = await supabase.from('books').insert({
+      const { data: created, error: insertError } = await supabase.from('books').insert({
         title: String(form.get('title')),
         author: text('author'),
         isbn: text('isbn'),
@@ -102,9 +103,18 @@ export default function NewBookForm() {
         series: text('series'),
         call_number: text('call_number'),
         inventory_number: type === 'physical' ? text('inventory_number') : null,
-      });
+      })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Jismoniy kitob: nusxa soniga qarab har bir nusxaga QR kod yaratamiz
+      const newId = (created as { id: string } | null)?.id;
+      if (type === 'physical' && newId) {
+        const res = await syncBookCopies(newId);
+        if (!res.ok) throw new Error(res.message || t('librarian.errGeneric'));
+      }
 
       router.push('/librarian/books');
       router.refresh();

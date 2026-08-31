@@ -50,6 +50,56 @@ export async function addBookCopies(
   return { ok: true, added: rows.length };
 }
 
+// Kitobdagi "nusxa soni" (total_copies) ga qarab yetishmayotgan nusxalarni (QR) yaratadi.
+// Mavjud nusxalar hech qachon o'chirilmaydi — faqat kami qo'shiladi.
+export async function syncBookCopies(bookId: string): Promise<CopyResult> {
+  const supabase = await assertLibrarian();
+
+  const { data: book } = await supabase
+    .from('books')
+    .select('type, total_copies')
+    .eq('id', bookId)
+    .maybeSingle();
+
+  if (!book) return { ok: false, error: 'nobook' };
+  const b = book as { type: string; total_copies: number | null };
+  // Faqat jismoniy kitobda jismoniy nusxa (QR) bo'ladi
+  if (b.type !== 'physical') return { ok: true, added: 0 };
+
+  const target = Math.max(0, Math.min(Number(b.total_copies ?? 0), 500));
+
+  const { data: existing, error: readErr } = await supabase
+    .from('book_copies')
+    .select('copy_number')
+    .eq('book_id', bookId);
+  if (readErr) return { ok: false, error: 'generic', message: readErr.message };
+
+  const current = (existing as { copy_number: string | null }[] | null) ?? [];
+  const missing = target - current.length;
+  if (missing <= 0) return { ok: true, added: 0 };
+
+  // Mavjud raqamlarni takrorlamaymiz — eng kattasidan davom etamiz (0001, 0002...)
+  const used = new Set(current.map((r) => (r.copy_number ?? '').trim()).filter(Boolean));
+  const numeric = [...used].filter((n) => /^\d+$/.test(n));
+  const width = Math.max(4, ...numeric.map((n) => n.length));
+  let next = Math.max(0, ...numeric.map((n) => Number(n))) + 1;
+
+  const rows: { book_id: string; copy_number: string; status: 'available' }[] = [];
+  while (rows.length < missing) {
+    const no = String(next).padStart(width, '0');
+    next += 1;
+    if (used.has(no)) continue;
+    used.add(no);
+    rows.push({ book_id: bookId, copy_number: no, status: 'available' });
+  }
+
+  const { error } = await supabase.from('book_copies').insert(rows);
+  if (error) return { ok: false, error: 'generic', message: error.message };
+
+  revalidatePath(`/librarian/books/${bookId}`);
+  return { ok: true, added: rows.length };
+}
+
 export async function deleteBookCopy(copyId: string): Promise<CopyResult> {
   const supabase = await assertLibrarian();
   const { data: copy } = await supabase

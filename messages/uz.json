@@ -252,6 +252,8 @@
     "returnedOk": "Nusxa qaytarib olindi",
     "notBorrowed": "Bu nusxa berilmagan — sahifani yangilang",
     "noCopiesYet": "Hali nusxa yo'q — yuqorida raqamlarni kiriting",
+    "missingCopies": "Kitobda {total} ta nusxa qayd etilgan, lekin {count} tasiga QR kod yaratilmagan",
+    "generateMissing": "Yetishmayotgan QR kodlarni yaratish",
     "myQr": "Mening QR kodim",
     "myQrHint": "Kutubxonachi kitob berayotganda shu kodni skaner qiladi"
   },

@@ -78,7 +78,12 @@ export default async function BookDetailPage({
           {[b.author, b.category].filter(Boolean).join(' · ')}
         </p>
       </div>
-      <BookCopies bookId={id} bookTitle={b.title} copies={copyRows} />
+      <BookCopies
+        bookId={id}
+        bookTitle={b.title}
+        copies={copyRows}
+        totalCopies={b.type === 'physical' ? b.total_copies ?? 0 : 0}
+      />
     </DashboardShell>
   );
 }

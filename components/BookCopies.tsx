@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { fmtDateTime } from '@/lib/datetime';
 import { useRouter } from '@/i18n/navigation';
-import { addBookCopies, deleteBookCopy, returnByCopy } from '@/app/[locale]/librarian/book-actions';
+import { addBookCopies, deleteBookCopy, returnByCopy, syncBookCopies } from '@/app/[locale]/librarian/book-actions';
 import { bookCopyPayload } from '@/lib/qr';
 import QrCode from './QrCode';
 import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
@@ -15,6 +15,7 @@ import {
   Hash,
   Printer,
   AlertCircle,
+  QrCode as QrCodeIcon,
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
@@ -31,10 +32,13 @@ export default function BookCopies({
   bookId,
   bookTitle,
   copies,
+  totalCopies = 0,
 }: {
   bookId: string;
   bookTitle: string;
   copies: BookCopyRow[];
+  /** Kitob kartochkasida qayd etilgan nusxa soni — QR bilan solishtiriladi */
+  totalCopies?: number;
 }) {
   const t = useTranslations('qr');
   const tt = useTranslations('textbooks');
@@ -54,6 +58,8 @@ export default function BookCopies({
   const total = copies.length;
   const borrowed = copies.filter((c) => c.status === 'borrowed').length;
   const available = total - borrowed;
+  // Kitobda qayd etilgan nusxa soniga yetmayotgan QR kodlar
+  const missing = Math.max(totalCopies - total, 0);
 
   function handleAdd() {
     setMsg(null);
@@ -65,6 +71,20 @@ export default function BookCopies({
         router.refresh();
       } else {
         setMsg({ type: 'err', text: res.message || tc('required') });
+      }
+    });
+  }
+
+  // Yetishmayotgan QR kodlarni yaratish (eski kitoblar uchun)
+  function handleGenerateMissing() {
+    setMsg(null);
+    startTransition(async () => {
+      const res = await syncBookCopies(bookId);
+      if (res.ok) {
+        setMsg({ type: 'ok', text: t('copiesAdded', { count: res.added ?? 0 }) });
+        router.refresh();
+      } else {
+        setMsg({ type: 'err', text: res.message || tl('errGeneric') });
       }
     });
   }
@@ -112,6 +132,28 @@ export default function BookCopies({
         <Tile label={tt('available')} value={available} accent="green" />
         <Tile label={t('borrowed')} value={borrowed} accent="amber" />
       </div>
+
+      {/* Nusxa soni QR kodlardan ko'p bo'lsa — yetishmayotganini yaratish */}
+      {missing > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 print:hidden">
+          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+          <p className="flex-1 text-sm text-amber-800">
+            {t('missingCopies', { total: totalCopies, count: missing })}
+          </p>
+          <button
+            onClick={handleGenerateMissing}
+            disabled={isPending}
+            className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <QrCodeIcon className="h-4 w-4" />
+            )}
+            {t('generateMissing')}
+          </button>
+        </div>
+      )}
 
       {/* Nusxa (QR) qo'shish */}
       <div className="space-y-3 rounded-2xl border border-stone-200 bg-white p-5 print:hidden">
