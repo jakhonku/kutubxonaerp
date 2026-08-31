@@ -21,6 +21,7 @@ import {
   Search,
   X,
   ScanLine,
+  QrCode,
   type LucideIcon,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -45,6 +46,7 @@ function itemsForRole(role: Role): NavItem[] {
       { href: '/librarian/books', labelKey: 'books', icon: BookMarked },
       { href: '/librarian/books/new', labelKey: 'addBook', icon: PlusCircle },
       { href: '/librarian/issue', labelKey: 'qrIssue', icon: ScanLine },
+      { href: '/librarian/qr-labels', labelKey: 'qrLabels', icon: QrCode },
       { href: '/librarian/inventory', labelKey: 'inventory', icon: ClipboardList },
       { href: '/librarian/summary', labelKey: 'summary', icon: BookText },
       { href: '/librarian/loans', labelKey: 'loans', icon: Repeat },
@@ -87,6 +89,7 @@ const LABELS: Record<string, string> = {
   books: 'nav.books',
   addBook: 'nav.addBook',
   qrIssue: 'nav.qrIssue',
+  qrLabels: 'nav.qrLabels',
   inventory: 'nav.inventory',
   summary: 'nav.summary',
   loans: 'nav.loans',

@@ -5,7 +5,9 @@ import { useTranslations } from 'next-intl';
 import { fmtDateTime } from '@/lib/datetime';
 import { useRouter } from '@/i18n/navigation';
 import { addBookCopies, deleteBookCopy, returnByCopy, syncBookCopies } from '@/app/[locale]/librarian/book-actions';
-import { bookCopyPayload } from '@/lib/qr';
+import { bookCopyPayload, copyLabel } from '@/lib/qr';
+import type { QrLabel } from '@/lib/qr-labels';
+import QrLabelsButton from './QrLabelsButton';
 import QrCode from './QrCode';
 import ConfirmDialog, { type ConfirmDetail } from './ConfirmDialog';
 import {
@@ -33,12 +35,15 @@ export default function BookCopies({
   bookTitle,
   copies,
   totalCopies = 0,
+  inventoryNumber = null,
 }: {
   bookId: string;
   bookTitle: string;
   copies: BookCopyRow[];
   /** Kitob kartochkasida qayd etilgan nusxa soni — QR bilan solishtiriladi */
   totalCopies?: number;
+  /** Yorliqdagi inventar raqami */
+  inventoryNumber?: string | null;
 }) {
   const t = useTranslations('qr');
   const tt = useTranslations('textbooks');
@@ -60,6 +65,13 @@ export default function BookCopies({
   const available = total - borrowed;
   // Kitobda qayd etilgan nusxa soniga yetmayotgan QR kodlar
   const missing = Math.max(totalCopies - total, 0);
+
+  // Chop etish uchun yorliqlar — ekrandagi QR bilan bir xil
+  const labels: QrLabel[] = copies.map((c) => ({
+    value: bookCopyPayload(c.id, c.copy_number, bookTitle),
+    code: copyLabel(inventoryNumber, c.copy_number, c.id),
+    title: bookTitle,
+  }));
 
   function handleAdd() {
     setMsg(null);
@@ -179,6 +191,12 @@ export default function BookCopies({
             {t('generateQr')}
           </button>
           {total > 0 && (
+            <QrLabelsButton
+              labels={labels}
+              filename={`qr-${(inventoryNumber || bookTitle).slice(0, 40)}.pdf`}
+            />
+          )}
+          {total > 0 && (
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
@@ -218,8 +236,8 @@ export default function BookCopies({
               <QrCode
                 value={bookCopyPayload(c.id, c.copy_number, bookTitle)}
                 size={130}
-                filename={`qr-${c.copy_number || c.id.slice(0, 6)}.png`}
-                caption={c.copy_number ? `#${c.copy_number}` : c.id.slice(0, 8)}
+                filename={`qr-${copyLabel(inventoryNumber, c.copy_number, c.id)}.png`}
+                caption={copyLabel(inventoryNumber, c.copy_number, c.id)}
               />
               <p className="line-clamp-1 text-center text-xs font-medium text-stone-700">{bookTitle}</p>
               {c.status === 'borrowed' ? (

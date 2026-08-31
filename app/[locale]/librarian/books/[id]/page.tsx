@@ -83,6 +83,7 @@ export default async function BookDetailPage({
         bookTitle={b.title}
         copies={copyRows}
         totalCopies={b.type === 'physical' ? b.total_copies ?? 0 : 0}
+        inventoryNumber={b.inventory_number}
       />
     </DashboardShell>
   );

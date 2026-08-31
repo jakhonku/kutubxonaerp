@@ -27,3 +27,17 @@ export function parseQr(text: string): ParsedQr {
   }
   return { kind: 'unknown' };
 }
+
+// Nusxa yorlig'idagi yozuv — inventar raqami + nusxa raqami (2632-0001)
+export function copyLabel(
+  inventoryNumber: string | null | undefined,
+  copyNumber: string | null | undefined,
+  copyId: string
+): string {
+  const inv = (inventoryNumber ?? '').trim();
+  const no = (copyNumber ?? '').trim();
+  if (inv && no) return `${inv}-${no}`;
+  if (inv) return inv;
+  if (no) return no;
+  return copyId.slice(0, 8).toUpperCase();
+}
