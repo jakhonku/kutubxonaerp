@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { Trash2, BookOpen, FileText, Pencil, QrCode as QrCodeIcon, Library } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { deleteBook } from '@/app/[locale]/librarian/actions';
+import BookExportExcel from '@/components/BookExportExcel';
 import type { Book, BookType } from '@/types/database';
 
 // Turi bo'yicha filtr: hammasi / oddiy kitob / PDF kitob
@@ -42,32 +43,42 @@ export default function BookManageList({ books }: { books: Book[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Turi bo'yicha filtr — PDF kitoblar va oddiy kitoblar alohida ko'rinadi */}
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const Icon = f.icon;
-          return (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                filter === f.key
-                  ? 'bg-brand-600 text-white'
-                  : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {f.label}
-              <span
-                className={`rounded-full px-1.5 text-xs ${
-                  filter === f.key ? 'bg-white/25' : 'bg-stone-100 text-stone-500'
+      {/* Turi bo'yicha filtr — PDF kitoblar va oddiy kitoblar alohida ko'rinadi.
+          O'ng tomonda — ko'rinib turgan ro'yxatni Excelga yuklash tugmasi. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => {
+            const Icon = f.icon;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filter === f.key
+                    ? 'bg-brand-600 text-white'
+                    : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
                 }`}
               >
-                {counts[f.key]}
-              </span>
-            </button>
-          );
-        })}
+                <Icon className="h-4 w-4" />
+                {f.label}
+                <span
+                  className={`rounded-full px-1.5 text-xs ${
+                    filter === f.key ? 'bg-white/25' : 'bg-stone-100 text-stone-500'
+                  }`}
+                >
+                  {counts[f.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <BookExportExcel
+          books={shown}
+          fileLabel={
+            filter === 'ebook' ? 'kitoblar-pdf' : filter === 'physical' ? 'kitoblar-fond' : 'kitoblar'
+          }
+        />
       </div>
 
       {shown.length === 0 ? (

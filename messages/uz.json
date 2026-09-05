@@ -346,7 +346,12 @@
     "sectionBiblio": "Bibliografik ma'lumot",
     "sectionCopy": "Nusxa va joylashuv",
     "uploading": "Yuklanmoqda...",
-    "saved": "Kitob saqlandi"
+    "saved": "Kitob saqlandi",
+    "createdAt": "Qo'shilgan sana",
+    "exportExcel": "Excelga yuklash",
+    "exportHint": "Ro'yxatni Excel (.xlsx) fayl qilib yuklab olish — boshqa bazaga ko'chirish uchun",
+    "exportSheetList": "Kitoblar",
+    "exportSheetDb": "Baza uchun"
   },
   "loans": {
     "status": "Holati",

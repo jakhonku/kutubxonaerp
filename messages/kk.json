@@ -346,7 +346,12 @@
     "sectionBiblio": "Библиографиялық мәлімет",
     "sectionCopy": "Дана және орналасуы",
     "uploading": "Жүктелуде...",
-    "saved": "Кітап сақталды"
+    "saved": "Кітап сақталды",
+    "createdAt": "Қосылған күні",
+    "exportExcel": "Excel-ге жүктеу",
+    "exportHint": "Тізімді Excel (.xlsx) файл етіп жүктеп алу — басқа базаға көшіру үшін",
+    "exportSheetList": "Кітаптар",
+    "exportSheetDb": "База үшін"
   },
   "loans": {
     "status": "Күйі",
