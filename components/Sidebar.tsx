@@ -22,12 +22,14 @@ import {
   X,
   ScanLine,
   QrCode,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import LogoutButton from './LogoutButton';
 import InstallAppButton from './InstallAppButton';
 import NotifyButton from './NotifyButton';
+import { BELES_ENABLED } from '@/lib/beles/config';
 
 interface NavItem {
   href: string;
@@ -156,6 +158,22 @@ export default function Sidebar({
             </Link>
           );
         })}
+
+        {/* «БЕЛЕС» — moduldan mavjud navigatsiyaga qo'shilgan YAGONA havola.
+            NEXT_PUBLIC_BELES_ENABLED=true bo'lmasa umuman ko'rinmaydi. */}
+        {BELES_ENABLED && (
+          <Link
+            href="/beles"
+            onClick={onNavigate}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${pathname.startsWith('/beles')
+                ? 'bg-brand-50 font-medium text-brand-700'
+                : 'text-stone-600 hover:bg-stone-100'
+              }`}
+          >
+            <Sparkles className="h-5 w-5" />
+            Белес
+          </Link>
+        )}
       </nav>
 
       <div className="mt-4 space-y-3 border-t border-stone-200 pt-4">
