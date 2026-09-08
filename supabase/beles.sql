@@ -14,6 +14,12 @@
 
 -- ============================================================
 -- 1-QISM: YORDAMCHI FUNKSIYALAR
+--
+-- DIQQAT: bu yerda FAQAT beles_* jadvallarga murojaat qilmaydigan
+-- funksiyalar bo'ladi. PostgreSQL funksiya tanasini yaratish paytidayoq
+-- tekshiradi (check_function_bodies), shuning uchun jadvalga murojaat
+-- qiladigan beles_participant_id() jadvallardan KEYIN, 3.5-QISMda
+-- yaratiladi.
 -- ============================================================
 
 -- Bugungi sana — MAKTAB vaqt mintaqasida (Asia/Tashkent).
@@ -26,18 +32,6 @@ stable
 set search_path = public
 as $$
   select (now() at time zone 'Asia/Tashkent')::date;
-$$;
-
--- Joriy foydalanuvchining ishtirokchi id'si (yo'q bo'lsa null).
--- RLS policy'larida rekursiyani oldini olish uchun SECURITY DEFINER.
-create or replace function public.beles_participant_id()
-returns uuid
-language sql
-security definer
-stable
-set search_path = public
-as $$
-  select id from public.beles_participants where user_id = auth.uid();
 $$;
 
 -- Joriy foydalanuvchi xodimmi (kutubxonachi yoki o'qituvchi)?
@@ -323,6 +317,24 @@ create unique index if not exists beles_deep_answers_one_per_session
   on public.beles_deep_answers (session_id);
 create index if not exists idx_beles_deep_ungraded on public.beles_deep_answers(graded_at);
 create index if not exists idx_beles_certificates_participant on public.beles_certificates(participant_id);
+
+
+-- ============================================================
+-- 3.5-QISM: JADVALGA BOG'LIQ FUNKSIYA
+-- beles_participants jadvali yaratilgandan KEYIN e'lon qilinadi.
+-- ============================================================
+
+-- Joriy foydalanuvchining ishtirokchi id'si (yo'q bo'lsa null).
+-- RLS policy'larida rekursiyani oldini olish uchun SECURITY DEFINER.
+create or replace function public.beles_participant_id()
+returns uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select id from public.beles_participants where user_id = auth.uid();
+$$;
 
 
 -- ============================================================
