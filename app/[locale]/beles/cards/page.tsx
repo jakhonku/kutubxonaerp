@@ -5,6 +5,7 @@ import DashboardShell from '@/components/DashboardShell';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesEnabledInDb } from '@/lib/beles/settings';
 import BelesDisabled from '@/components/beles/BelesDisabled';
+import BelesBack from '@/components/beles/BelesBack';
 import { ensureProgress } from '@/lib/beles/session';
 import { belesStrings } from '@/lib/beles/strings';
 import { Lock } from 'lucide-react';
@@ -73,6 +74,7 @@ export default async function BelesCardsPage() {
 
   return (
     <DashboardShell role={profile.role}>
+      <BelesBack locale={locale} />
       <h1 className="mb-1 text-2xl font-bold text-stone-900">{s.title}</h1>
       <p className="mb-6 text-sm text-stone-500">{s.cardsTitle}</p>
 

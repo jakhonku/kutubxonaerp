@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { belesErrorText, belesStrings } from '@/lib/beles/strings';
 import BelesDeepAnswer from './BelesDeepAnswer';
+import BelesBack from './BelesBack';
 import { WARN_BEFORE_SECONDS } from '@/lib/beles/config';
 import { BELES_OPTION_KINDS } from '@/types/beles';
 import type { BelesPublicPuzzle, BelesSessionView } from '@/types/beles';
@@ -270,20 +271,12 @@ export default function BelesSessionClient({ locale }: { locale: string }) {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">{s.title}</h1>
-          {session?.bookTitle && (
-            <p className="mt-0.5 text-sm text-stone-500">{session.bookTitle}</p>
-          )}
-        </div>
-        <Link
-          href="/beles"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-stone-600 transition-colors hover:bg-stone-100"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {s.title}
-        </Link>
+      <BelesBack locale={locale} />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-stone-900">{s.title}</h1>
+        {session?.bookTitle && (
+          <p className="mt-0.5 text-sm text-stone-500">{session.bookTitle}</p>
+        )}
       </div>
 
       {error && (

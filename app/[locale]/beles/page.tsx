@@ -6,6 +6,7 @@ import StatCard from '@/components/StatCard';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesEnabledInDb } from '@/lib/beles/settings';
 import BelesDisabled from '@/components/beles/BelesDisabled';
+import BelesBack from '@/components/beles/BelesBack';
 import {
   ensureProgress,
   loadBook,
@@ -80,6 +81,12 @@ export default async function BelesHomePage() {
 
   return (
     <DashboardShell role={profile.role}>
+      {/* «Белес» dan mavjud kutubxona paneliga qaytish */}
+      <BelesBack
+        locale={locale}
+        href={profile.role === 'student' ? '/student' : profile.role === 'teacher' ? '/teacher' : '/librarian'}
+        label={s.toLibrary}
+      />
       <div className="mb-1 flex items-center gap-2">
         <h1 className="text-2xl font-bold text-stone-900">{s.title}</h1>
         <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">

@@ -6,6 +6,7 @@ import BelesRating from '@/components/beles/BelesRating';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesEnabledInDb } from '@/lib/beles/settings';
 import BelesDisabled from '@/components/beles/BelesDisabled';
+import BelesBack from '@/components/beles/BelesBack';
 import { nominations, ratingEntries } from '@/lib/beles/rating';
 import { belesStrings } from '@/lib/beles/strings';
 
@@ -42,6 +43,7 @@ export default async function BelesRatingPage() {
 
   return (
     <DashboardShell role={profile.role}>
+      <BelesBack locale={locale} />
       <h1 className="mb-1 text-2xl font-bold text-stone-900">{s.title}</h1>
       <p className="mb-6 text-sm text-stone-500">
         {s.ratingTitle} · {monthStart}

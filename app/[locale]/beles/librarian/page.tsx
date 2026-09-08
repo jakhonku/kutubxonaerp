@@ -6,6 +6,7 @@ import BelesDailyCode from '@/components/beles/BelesDailyCode';
 import BelesAttendance from '@/components/beles/BelesAttendance';
 import BelesParticipants from '@/components/beles/BelesParticipants';
 import BelesSwitch from '@/components/beles/BelesSwitch';
+import BelesBack from '@/components/beles/BelesBack';
 import { belesEnabledInDb } from '@/lib/beles/settings';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesToday } from '@/lib/beles/time';
@@ -66,6 +67,7 @@ export default async function BelesLibrarianPage() {
 
   return (
     <DashboardShell role={profile.role}>
+      <BelesBack locale={locale} />
       <h1 className="mb-1 text-2xl font-bold text-stone-900">{s.title}</h1>
       <p className="mb-6 text-sm text-stone-500">{s.librarianPanel}</p>
 

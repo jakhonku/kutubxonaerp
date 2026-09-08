@@ -69,6 +69,8 @@ const uz = {
   expired: 'Javob vaqti tugadi',
   sessionScore: 'Seans bali',
   backHome: '«Белес» sahifasiga qaytish',
+  back: 'Orqaga',
+  toLibrary: 'Kutubxona',
   loading: 'Yuklanmoqda…',
 
   // Xodim panellari
@@ -305,6 +307,8 @@ const kk: typeof uz = {
   expired: 'Жауап уақыты бітті',
   sessionScore: 'Сеанс ұпайы',
   backHome: '«Белес» бетіне қайту',
+  back: 'Артқа',
+  toLibrary: 'Кітапхана',
   loading: 'Жүктелуде…',
 
   librarianPanel: 'Кітапханашы панелі',

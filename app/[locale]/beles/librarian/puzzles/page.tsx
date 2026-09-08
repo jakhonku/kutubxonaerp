@@ -1,13 +1,13 @@
 import { getLocale } from 'next-intl/server';
-import { Link, redirect } from '@/i18n/navigation';
+import { redirect } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import DashboardShell from '@/components/DashboardShell';
 import BelesPuzzleManager from '@/components/beles/BelesPuzzleManager';
 import BelesDisabled from '@/components/beles/BelesDisabled';
+import BelesBack from '@/components/beles/BelesBack';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesEnabledInDb } from '@/lib/beles/settings';
 import { belesStrings } from '@/lib/beles/strings';
-import { ArrowLeft } from 'lucide-react';
 import type { BelesBook } from '@/types/beles';
 
 // Savollarni qo'shish/tahrirlash — faqat kutubxonachi.
@@ -57,19 +57,9 @@ export default async function BelesPuzzlesPage() {
 
   return (
     <DashboardShell role={profile.role}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">{s.title}</h1>
-          <p className="mt-0.5 text-sm text-stone-500">{s.puzzlesTitle}</p>
-        </div>
-        <Link
-          href="/beles/librarian"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-stone-600 transition-colors hover:bg-stone-100"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {s.librarianPanel}
-        </Link>
-      </div>
+      <BelesBack locale={locale} href="/beles/librarian" label={s.librarianPanel} />
+      <h1 className="text-2xl font-bold text-stone-900">{s.title}</h1>
+      <p className="mb-6 mt-0.5 text-sm text-stone-500">{s.puzzlesTitle}</p>
 
       <BelesPuzzleManager locale={locale} initialBooks={books} />
     </DashboardShell>
