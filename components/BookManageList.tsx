@@ -2,7 +2,17 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Trash2, BookOpen, FileText, Pencil, QrCode as QrCodeIcon, Library } from 'lucide-react';
+import {
+  Trash2,
+  BookOpen,
+  FileText,
+  Pencil,
+  QrCode as QrCodeIcon,
+  Library,
+  Search,
+  X,
+  Tag,
+} from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { deleteBook } from '@/app/[locale]/librarian/actions';
 import BookExportExcel from '@/components/BookExportExcel';
@@ -15,11 +25,33 @@ export default function BookManageList({ books }: { books: Book[] }) {
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<TypeFilter>('all');
+  const [genre, setGenre] = useState<string>('');
+  const [query, setQuery] = useState<string>('');
 
   function handleDelete(id: string) {
     if (!confirm(t('librarian.confirmDelete'))) return;
     startTransition(() => deleteBook(id));
   }
+
+  // Mavjud barcha janrlar / kategoriyalar ro'yxati
+  const genres = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of books) {
+      const g = b.category?.trim();
+      if (g) set.add(g);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [books]);
+
+  // Har bir janrdagi kitoblar soni
+  const genreCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const b of books) {
+      const g = b.category?.trim();
+      if (g) map[g] = (map[g] || 0) + 1;
+    }
+    return map;
+  }, [books]);
 
   const counts = useMemo(
     () => ({
@@ -30,10 +62,38 @@ export default function BookManageList({ books }: { books: Book[] }) {
     [books]
   );
 
-  const shown = useMemo(
-    () => (filter === 'all' ? books : books.filter((b) => b.type === filter)),
-    [books, filter]
-  );
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return books.filter((b) => {
+      // 1. Turi bo'yicha filtr
+      if (filter !== 'all' && b.type !== filter) return false;
+
+      // 2. Janr / Kategoriya bo'yicha filtr
+      if (genre && b.category?.trim() !== genre) return false;
+
+      // 3. Qidiruv so'zi bo'yicha filtr
+      if (q) {
+        const matches =
+          b.title.toLowerCase().includes(q) ||
+          (b.author?.toLowerCase().includes(q) ?? false) ||
+          (b.category?.toLowerCase().includes(q) ?? false) ||
+          (b.isbn?.toLowerCase().includes(q) ?? false) ||
+          (b.inventory_number?.toLowerCase().includes(q) ?? false) ||
+          (b.call_number?.toLowerCase().includes(q) ?? false);
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [books, filter, genre, query]);
+
+  const hasActiveFilters = Boolean(filter !== 'all' || genre || query.trim());
+
+  function resetFilters() {
+    setFilter('all');
+    setGenre('');
+    setQuery('');
+  }
 
   const FILTERS: { key: TypeFilter; label: string; icon: typeof BookOpen }[] = [
     { key: 'all', label: t('common.all'), icon: Library },
@@ -43,10 +103,67 @@ export default function BookManageList({ books }: { books: Book[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Turi bo'yicha filtr — PDF kitoblar va oddiy kitoblar alohida ko'rinadi.
-          O'ng tomonda — ko'rinib turgan ro'yxatni Excelga yuklash tugmasi. */}
+      {/* Qidiruv va Janr bo'yicha filtr paneli */}
+      <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          {/* Matnli qidiruv */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('library.searchPlaceholder')}
+              className="w-full rounded-xl border border-stone-200 bg-stone-50/50 py-2 pl-9 pr-8 text-sm outline-none transition-colors focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-stone-400 hover:text-stone-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Janr / Kategoriya bo'yicha filter */}
+          <div className="relative min-w-[220px]">
+            <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <select
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-stone-200 bg-stone-50/50 py-2 pl-9 pr-8 text-sm font-medium text-stone-800 outline-none transition-colors focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
+            >
+              <option value="">{t('search.allCategories')}</option>
+              {genres.map((g) => (
+                <option key={g} value={g}>
+                  {g} ({genreCounts[g] ?? 0})
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">
+              ▼
+            </div>
+          </div>
+
+          {/* Filtrlarni tozalash */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-100"
+            >
+              <X className="h-3.5 w-3.5" />
+              {t('qr.clearAll')}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Turi bo'yicha filtr va Excel export */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {FILTERS.map((f) => {
             const Icon = f.icon;
             return (
@@ -55,7 +172,7 @@ export default function BookManageList({ books }: { books: Book[] }) {
                 onClick={() => setFilter(f.key)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                   filter === f.key
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-brand-600 text-white shadow-xs'
                     : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
                 }`}
               >
@@ -63,7 +180,7 @@ export default function BookManageList({ books }: { books: Book[] }) {
                 {f.label}
                 <span
                   className={`rounded-full px-1.5 text-xs ${
-                    filter === f.key ? 'bg-white/25' : 'bg-stone-100 text-stone-500'
+                    filter === f.key ? 'bg-white/25 text-white' : 'bg-stone-100 text-stone-500'
                   }`}
                 >
                   {counts[f.key]}
@@ -71,6 +188,10 @@ export default function BookManageList({ books }: { books: Book[] }) {
               </button>
             );
           })}
+
+          <span className="ml-2 text-xs text-stone-500">
+            {t('search.resultsCount', { count: shown.length })}
+          </span>
         </div>
 
         <BookExportExcel
@@ -82,7 +203,9 @@ export default function BookManageList({ books }: { books: Book[] }) {
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-stone-500">{t('common.noResults')}</p>
+        <div className="rounded-2xl border border-stone-200 bg-white p-12 text-center text-stone-500">
+          <p className="text-sm font-medium">{t('search.noResults')}</p>
+        </div>
       ) : (
         <BooksTable books={shown} isPending={isPending} onDelete={handleDelete} t={t} />
       )}
@@ -108,6 +231,7 @@ function BooksTable({
           <tr>
             <th className="p-3 font-medium">{t('book.title')}</th>
             <th className="p-3 font-medium">{t('book.author')}</th>
+            <th className="p-3 font-medium">{t('book.category')}</th>
             <th className="p-3 font-medium">{t('book.callNumberShort')}</th>
             <th className="p-3 font-medium">{t('book.type')}</th>
             <th className="p-3 font-medium">{t('book.availableCopies')}</th>
@@ -119,6 +243,15 @@ function BooksTable({
             <tr key={book.id} className="hover:bg-stone-50">
               <td className="p-3 font-medium text-stone-900">{book.title}</td>
               <td className="p-3 text-stone-600">{book.author ?? '—'}</td>
+              <td className="p-3">
+                {book.category ? (
+                  <span className="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+                    {book.category}
+                  </span>
+                ) : (
+                  <span className="text-stone-400">—</span>
+                )}
+              </td>
               <td className="p-3 text-stone-600">{book.call_number || '—'}</td>
               <td className="p-3">
                 <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
