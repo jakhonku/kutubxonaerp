@@ -190,6 +190,13 @@ export interface BelesCertificate {
   created_at: string;
 }
 
+export interface BelesSetting {
+  key: string;
+  value: boolean;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 // ---------------------------------------------------------------
 // KLIENTGA YUBORILADIGAN turlar.
 // Diqqat: bu yerda is_correct, correct_order va to'g'ri javob YO'Q.
@@ -258,6 +265,7 @@ export interface BelesDatabase {
       beles_card_unlocks: Table<BelesCardUnlock>;
       beles_deep_answers: Table<BelesDeepAnswer>;
       beles_certificates: Table<BelesCertificate>;
+      beles_settings: Table<BelesSetting>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

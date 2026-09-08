@@ -3,6 +3,8 @@ import { redirect } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import DashboardShell from '@/components/DashboardShell';
 import { belesPageContext } from '@/lib/beles/guard';
+import { belesEnabledInDb } from '@/lib/beles/settings';
+import BelesDisabled from '@/components/beles/BelesDisabled';
 import { ensureProgress } from '@/lib/beles/session';
 import { belesStrings } from '@/lib/beles/strings';
 import { Lock } from 'lucide-react';
@@ -30,6 +32,14 @@ export default async function BelesCardsPage() {
   if (!ctx) {
     redirect({ href: '/login', locale });
     return null;
+  }
+
+  if (!(await belesEnabledInDb(ctx.admin))) {
+    return (
+      <DashboardShell role={profile.role}>
+        <BelesDisabled locale={locale} />
+      </DashboardShell>
+    );
   }
 
   const progress = await ensureProgress(ctx.admin, ctx.participant);

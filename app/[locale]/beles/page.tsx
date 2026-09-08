@@ -4,6 +4,8 @@ import { getProfile } from '@/lib/auth';
 import DashboardShell from '@/components/DashboardShell';
 import StatCard from '@/components/StatCard';
 import { belesPageContext } from '@/lib/beles/guard';
+import { belesEnabledInDb } from '@/lib/beles/settings';
+import BelesDisabled from '@/components/beles/BelesDisabled';
 import {
   ensureProgress,
   loadBook,
@@ -42,6 +44,27 @@ export default async function BelesHomePage() {
   if (!ctx) {
     redirect({ href: '/login', locale });
     return null;
+  }
+
+  // Kutubxonachi panelidagi kalit o'chirilgan bo'lsa — o'yin to'xtaydi,
+  // lekin kutubxonachi panelga o'tib uni qayta yoqa oladi.
+  if (!(await belesEnabledInDb(ctx.admin))) {
+    return (
+      <DashboardShell role={profile.role}>
+        <BelesDisabled locale={locale} />
+        {profile.role === 'librarian' && (
+          <div className="mt-6 text-center">
+            <Link
+              href="/beles/librarian"
+              className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-4 py-3 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              <ClipboardList className="h-5 w-5" />
+              {s.librarianPanel}
+            </Link>
+          </div>
+        )}
+      </DashboardShell>
+    );
   }
 
   const now = new Date();

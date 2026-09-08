@@ -281,6 +281,22 @@ create table if not exists public.beles_certificates (
 );
 
 
+-- ---------- Modul sozlamalari ----------
+-- Modulni saytning o'zidan (kutubxonachi panelidan) o'chirib-yoqish uchun.
+-- Muhit o'zgaruvchisi BELES_ENABLED — asosiy "master" kalit bo'lib qoladi:
+-- u false bo'lsa, bu jadvalda nima yozilganidan qat'i nazar modul yo'q.
+create table if not exists public.beles_settings (
+  key text primary key,
+  value boolean not null default true,
+  updated_by uuid references public.profiles(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.beles_settings (key, value)
+values ('enabled', true)
+on conflict (key) do nothing;
+
+
 -- ============================================================
 -- 3-QISM: INDEKSLAR
 -- ============================================================
@@ -329,6 +345,7 @@ alter table public.beles_cards          enable row level security;
 alter table public.beles_card_unlocks   enable row level security;
 alter table public.beles_deep_answers   enable row level security;
 alter table public.beles_certificates   enable row level security;
+alter table public.beles_settings       enable row level security;
 
 
 -- ============================================================
@@ -478,6 +495,9 @@ revoke all on public.beles_puzzles        from anon, authenticated;
 revoke all on public.beles_puzzle_options from anon, authenticated;
 revoke all on public.beles_puzzle_answers from anon, authenticated;
 revoke all on public.beles_cards          from anon, authenticated;
+
+-- Sozlamalar: o'qish ham, yozish ham faqat server orqali.
+revoke all on public.beles_settings       from anon, authenticated;
 
 -- Policy yaratuvchi yordamchi funksiya faqat administrator uchun.
 revoke all on function public.beles_ensure_policy(text, text, text) from anon, authenticated;

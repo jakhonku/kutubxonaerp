@@ -149,6 +149,18 @@ const uz = {
   colVariant: 'Variant',
   nameHint: 'Bu ism ochiq reytingda ko‘rinadi',
 
+  // Modul kaliti (kutubxonachi paneli)
+  switchTitle: 'Modul holati',
+  moduleOn: 'Yoqilgan',
+  moduleOff: 'O‘chirilgan',
+  turnOn: 'Yoqish',
+  turnOff: 'O‘chirish',
+  switchHint:
+    'O‘chirilganda o‘quvchilar «Белес» ga kira olmaydi. Ballar, seanslar va sertifikatlar bazada saqlanib qoladi — qayta yoqsangiz, hammasi joyida davom etadi.',
+  disabledTitle: '«Белес» vaqtincha o‘chirilgan',
+  disabledText:
+    'Kutubxonachi modulni qayta yoqqach, o‘yin davom etadi. Yig‘ilgan ballaringiz saqlanib turibdi.',
+
   // Xatolar
   errors: {
     bad_code: 'Kod noto‘g‘ri. Kutubxonachidan tekshirib so‘rang.',
@@ -168,6 +180,8 @@ const uz = {
     already_graded: 'Javob baholangan, endi o‘zgartirib bo‘lmaydi.',
     bad_name: 'Ism 2–40 belgidan iborat bo‘lishi kerak.',
     not_found: 'Topilmadi.',
+    module_disabled: '«Белес» vaqtincha o‘chirilgan.',
+    settings_failed: 'Kalitni saqlab bo‘lmadi. beles.sql qayta ishga tushirilganini tekshiring.',
     too_many_requests: 'Juda ko‘p urinish. Bir oz kuting.',
     unauthorized: 'Avval tizimga kiring.',
     forbidden: 'Ruxsat yo‘q.',
@@ -317,6 +331,17 @@ const kk: typeof uz = {
   colVariant: 'Нұсқа',
   nameHint: 'Бұл ат ашық рейтингте көрінеді',
 
+  switchTitle: 'Модуль күйі',
+  moduleOn: 'Қосулы',
+  moduleOff: 'Өшірулі',
+  turnOn: 'Қосу',
+  turnOff: 'Өшіру',
+  switchHint:
+    'Өшірілгенде оқушылар «Белес»-ке кіре алмайды. Ұпайлар, сеанстар мен сертификаттар базада сақталады — қайта қоссаңыз, бәрі орнында жалғасады.',
+  disabledTitle: '«Белес» уақытша өшірілген',
+  disabledText:
+    'Кітапханашы модульді қайта қосқанда ойын жалғасады. Жинаған ұпайларыңыз сақталып тұр.',
+
   errors: {
     bad_code: 'Код қате. Кітапханашыдан тексеріп сұраңыз.',
     no_daily_code: 'Бүгінге код әлі жасалмаған. Кітапханашыға айтыңыз.',
@@ -335,6 +360,8 @@ const kk: typeof uz = {
     already_graded: 'Жауап бағаланған, енді өзгертуге болмайды.',
     bad_name: 'Ат 2–40 таңбадан тұруы керек.',
     not_found: 'Табылмады.',
+    module_disabled: '«Белес» уақытша өшірілген.',
+    settings_failed: 'Кілт сақталмады. beles.sql қайта іске қосылғанын тексеріңіз.',
     too_many_requests: 'Тым көп талпыныс. Сәл күте тұрыңыз.',
     unauthorized: 'Алдымен жүйеге кіріңіз.',
     forbidden: 'Рұқсат жоқ.',

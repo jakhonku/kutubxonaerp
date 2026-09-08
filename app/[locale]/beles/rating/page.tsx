@@ -4,6 +4,8 @@ import { getProfile } from '@/lib/auth';
 import DashboardShell from '@/components/DashboardShell';
 import BelesRating from '@/components/beles/BelesRating';
 import { belesPageContext } from '@/lib/beles/guard';
+import { belesEnabledInDb } from '@/lib/beles/settings';
+import BelesDisabled from '@/components/beles/BelesDisabled';
 import { nominations, ratingEntries } from '@/lib/beles/rating';
 import { belesStrings } from '@/lib/beles/strings';
 
@@ -25,6 +27,14 @@ export default async function BelesRatingPage() {
   if (!ctx) {
     redirect({ href: '/login', locale });
     return null;
+  }
+
+  if (!(await belesEnabledInDb(ctx.admin))) {
+    return (
+      <DashboardShell role={profile.role}>
+        <BelesDisabled locale={locale} />
+      </DashboardShell>
+    );
   }
 
   const { entries, monthStart } = await ratingEntries(ctx.admin);

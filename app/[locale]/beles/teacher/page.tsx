@@ -5,6 +5,8 @@ import DashboardShell from '@/components/DashboardShell';
 import BelesGradeList from '@/components/beles/BelesGradeList';
 import BelesConfirmList from '@/components/beles/BelesConfirmList';
 import { belesPageContext } from '@/lib/beles/guard';
+import { belesEnabledInDb } from '@/lib/beles/settings';
+import BelesDisabled from '@/components/beles/BelesDisabled';
 import { belesStrings } from '@/lib/beles/strings';
 import type {
   BelesBook,
@@ -35,6 +37,14 @@ export default async function BelesTeacherPage() {
   if (!ctx) {
     redirect({ href: '/login', locale });
     return null;
+  }
+
+  if (!(await belesEnabledInDb(ctx.admin))) {
+    return (
+      <DashboardShell role={profile.role}>
+        <BelesDisabled locale={locale} />
+      </DashboardShell>
+    );
   }
 
   const [

@@ -240,13 +240,13 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           e.preventDefault();
           handleIssue(new FormData(e.currentTarget));
         }}
-        className="rounded-2xl border border-stone-200 bg-white p-6"
+        className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"
       >
-        <div className="grid gap-4 sm:grid-cols-4">
-          <label className="block sm:col-span-1">
-            <span className="mb-1 block text-sm font-medium text-stone-700">
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-stone-700">
               {t('librarian.selectStudent')}
-            </span>
+            </label>
             <SearchSelect
               name="user_id"
               options={studentOptions}
@@ -254,12 +254,12 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
               emptyText={t('common.noResults')}
               resetKey={formKey}
             />
-          </label>
+          </div>
 
-          <label className="block sm:col-span-1">
-            <span className="mb-1 block text-sm font-medium text-stone-700">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-stone-700">
               {t('librarian.selectBook')}
-            </span>
+            </label>
             <SearchSelect
               name="book_id"
               options={bookOptions}
@@ -267,20 +267,23 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
               emptyText={t('common.noResults')}
               resetKey={formKey}
             />
-          </label>
+          </div>
+        </div>
 
-          <label className="block sm:col-span-1">
-            <span className="mb-1 block text-sm font-medium text-stone-700">
+        <div className="mt-5 rounded-xl border border-stone-200/80 bg-stone-50/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+            <span className="text-sm font-semibold text-stone-800">
               {mode === 'hall' ? t('librarian.hours') : t('librarian.dueDate')}
             </span>
-            {/* Rejim: uyga (kunlab) / o'quv zali (soatlab) */}
             <input type="hidden" name="mode" value={mode} />
-            <div className="mb-1.5 inline-flex w-full rounded-lg border border-stone-200 p-0.5">
+            <div className="inline-flex rounded-lg border border-stone-200 bg-white p-0.5 shadow-xs">
               <button
                 type="button"
                 onClick={() => setMode('home')}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                  mode === 'home' ? 'bg-brand-600 text-white' : 'text-stone-600 hover:bg-stone-100'
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'home'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
                 }`}
               >
                 <Home className="h-3.5 w-3.5" />
@@ -289,108 +292,115 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
               <button
                 type="button"
                 onClick={() => setMode('hall')}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                  mode === 'hall' ? 'bg-brand-600 text-white' : 'text-stone-600 hover:bg-stone-100'
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'hall'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
                 }`}
               >
                 <BookOpen className="h-3.5 w-3.5" />
                 {t('librarian.modeHall')}
               </button>
             </div>
+          </div>
 
-            {mode === 'home' ? (
-              <>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <input
-                    name="due_date"
-                    type="date"
-                    min={dateAfter(0)}
-                    value={due}
-                    onChange={(e) => setDue(e.target.value)}
-                    className="fld"
-                    title={t('librarian.dueDate')}
-                  />
-                  <input
-                    name="due_time"
-                    type="time"
-                    value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value || '23:59')}
-                    className="fld"
-                    title={t('librarian.dueTime')}
-                  />
-                </div>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {TERMS.map((d) => {
-                    const val = dateAfter(d);
-                    return (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => setDue(val)}
-                        className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                          due === val
-                            ? 'bg-brand-600 text-white'
-                            : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
-                        }`}
-                      >
-                        {t('librarian.termDays', { days: d })}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <>
+          {mode === 'home' ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
                 <input
-                  name="hours"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={hours}
-                  onChange={(e) => setHours(Number(e.target.value) || 1)}
-                  className="fld"
+                  name="due_date"
+                  type="date"
+                  min={dateAfter(0)}
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  className="fld !w-auto min-w-[155px] font-medium"
+                  title={t('librarian.dueDate')}
                 />
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {HOUR_TERMS.map((h) => (
+                <input
+                  name="due_time"
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value || '23:59')}
+                  className="fld !w-auto min-w-[105px] font-medium text-center"
+                  title={t('librarian.dueTime')}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {TERMS.map((d) => {
+                  const val = dateAfter(d);
+                  const isSelected = due === val;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDue(val)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-xs'
+                          : 'border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'
+                      }`}
+                    >
+                      {t('librarian.termDays', { days: d })}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                name="hours"
+                type="number"
+                min={1}
+                step={1}
+                value={hours}
+                onChange={(e) => setHours(Number(e.target.value) || 1)}
+                className="fld !w-24 font-medium"
+              />
+              <div className="flex flex-wrap items-center gap-1.5">
+                {HOUR_TERMS.map((h) => {
+                  const isSelected = hours === h;
+                  return (
                     <button
                       key={h}
                       type="button"
                       onClick={() => setHours(h)}
-                      className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                        hours === h
-                          ? 'bg-brand-600 text-white'
-                          : 'border border-stone-200 text-stone-600 hover:bg-stone-50'
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-xs'
+                          : 'border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'
                       }`}
                     >
                       {t('librarian.termHours', { hours: h })}
                     </button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-amber-600">{t('librarian.hallHint')}</p>
-              </>
-            )}
-          </label>
+                  );
+                })}
+              </div>
+              <p className="w-full text-xs text-amber-600">{t('librarian.hallHint')}</p>
+            </div>
+          )}
+        </div>
 
-          <div className="flex items-start sm:items-end">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 font-medium text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
-            >
-              <Send className="h-4 w-4" />
-              {t('librarian.issueBook')}
-            </button>
-          </div>
+        <div className="mt-5 flex justify-end">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 font-medium text-white shadow-xs transition-colors hover:bg-brand-700 disabled:opacity-60"
+          >
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {t('librarian.issueBook')}
+          </button>
         </div>
 
         {issueError && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {issueError}
           </div>
         )}
         {issueOk && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             {t('librarian.issued')}
           </div>
@@ -561,13 +571,28 @@ export default function LoanManager({ loans, students, availableBooks }: Props) 
           width: 100%;
           border-radius: 0.5rem;
           border: 1px solid #e7e5e4;
-          padding: 0.5rem 0.75rem;
+          padding: 0.45rem 0.65rem;
+          font-size: 0.875rem;
+          line-height: 1.25rem;
           outline: none;
           background: white;
+          color: #1c1917;
+          font-variant-numeric: tabular-nums;
         }
         .fld:focus {
           border-color: #2f7d52;
           box-shadow: 0 0 0 2px #d4e9dd;
+        }
+        input[type='date']::-webkit-calendar-picker-indicator,
+        input[type='time']::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          opacity: 0.65;
+          margin-left: 0.25rem;
+          padding: 0;
+        }
+        input[type='date']::-webkit-calendar-picker-indicator:hover,
+        input[type='time']::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
         }
       `}</style>
     </div>

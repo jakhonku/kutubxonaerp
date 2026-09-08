@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { belesAdmin, UNIQUE_VIOLATION, type BelesAdmin } from './db';
 import { BELES_ENABLED } from './config';
+import { belesEnabledInDb } from './settings';
 import type { BelesGameRole, BelesGroupLevel, BelesParticipant } from '@/types/beles';
 
 export type ProfileRole = 'librarian' | 'teacher' | 'student';
@@ -132,14 +133,23 @@ async function loadContext(): Promise<BelesContext> {
 // Barcha /api/beles/* endpointlari shu qobiq orqali ishlaydi.
 // BELES_ENABLED=false bo'lsa — 404, ya'ni modul umuman yo'qdek.
 export async function belesRoute<T>(
-  handler: (ctx: BelesContext) => Promise<T>
+  handler: (ctx: BelesContext) => Promise<T>,
+  options: { skipSwitch?: boolean } = {}
 ): Promise<NextResponse> {
   if (!BELES_ENABLED) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
   try {
-    const data = await handler(await loadContext());
+    const ctx = await loadContext();
+
+    // Kutubxonachi panelidagi kalit. skipSwitch — faqat kalitning O'ZINI
+    // boshqaradigan endpoint uchun, aks holda modulni qayta yoqib bo'lmasdi.
+    if (!options.skipSwitch && !(await belesEnabledInDb(ctx.admin))) {
+      return NextResponse.json({ error: 'module_disabled' }, { status: 403 });
+    }
+
+    const data = await handler(ctx);
     return NextResponse.json((data ?? { ok: true }) as Record<string, unknown>);
   } catch (err) {
     if (err instanceof BelesError) {

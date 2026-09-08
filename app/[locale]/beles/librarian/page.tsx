@@ -5,6 +5,8 @@ import DashboardShell from '@/components/DashboardShell';
 import BelesDailyCode from '@/components/beles/BelesDailyCode';
 import BelesAttendance from '@/components/beles/BelesAttendance';
 import BelesParticipants from '@/components/beles/BelesParticipants';
+import BelesSwitch from '@/components/beles/BelesSwitch';
+import { belesEnabledInDb } from '@/lib/beles/settings';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesToday } from '@/lib/beles/time';
 import { belesStrings } from '@/lib/beles/strings';
@@ -33,6 +35,10 @@ export default async function BelesLibrarianPage() {
     redirect({ href: '/login', locale });
     return null;
   }
+
+  // Kalit o'chirilgan bo'lsa ham bu sahifa OCHIQ qoladi — aks holda
+  // kutubxonachi modulni qayta yoqa olmasdi.
+  const enabled = await belesEnabledInDb(ctx.admin);
 
   const { data: codeRow } = await ctx.admin
     .from('beles_daily_codes')
@@ -63,31 +69,39 @@ export default async function BelesLibrarianPage() {
       <p className="mb-6 text-sm text-stone-500">{s.librarianPanel}</p>
 
       <div className="mb-8">
-        <BelesDailyCode locale={locale} initialCode={(codeRow as DailyCode | null)?.code ?? null} />
+        <BelesSwitch locale={locale} initialEnabled={enabled} />
       </div>
 
-      <div className="mb-8">
-        <BelesAttendance locale={locale} />
-      </div>
+      {enabled && (
+        <>
+        <div className="mb-8">
+          <BelesDailyCode locale={locale} initialCode={(codeRow as DailyCode | null)?.code ?? null} />
+        </div>
 
-      <BelesParticipants
-        locale={locale}
-        rows={participants.map((participant) => {
-          const progress = progressById.get(participant.id);
-          return {
-            participantId: participant.id,
-            name: participant.display_name,
-            className: participant.class_name,
-            groupLevel: participant.group_level,
-            variant: participant.variant,
-            page: progress?.current_page ?? 0,
-            key: progress?.current_key ?? 1,
-            score: progress?.total_score ?? 0,
-            level: progress?.level ?? 'start',
-            sessions: progress?.sessions_count ?? 0,
-          };
-        })}
-      />
+        <div className="mb-8">
+          <BelesAttendance locale={locale} />
+        </div>
+
+        <BelesParticipants
+          locale={locale}
+          rows={participants.map((participant) => {
+            const progress = progressById.get(participant.id);
+            return {
+              participantId: participant.id,
+              name: participant.display_name,
+              className: participant.class_name,
+              groupLevel: participant.group_level,
+              variant: participant.variant,
+              page: progress?.current_page ?? 0,
+              key: progress?.current_key ?? 1,
+              score: progress?.total_score ?? 0,
+              level: progress?.level ?? 'start',
+              sessions: progress?.sessions_count ?? 0,
+            };
+          })}
+        />
+        </>
+      )}
     </DashboardShell>
   );
 }
