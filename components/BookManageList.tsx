@@ -271,9 +271,9 @@ function BooksTable({
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+    <div className="custom-scrollbar max-h-[620px] overflow-y-auto overflow-x-auto rounded-xl border border-stone-200 bg-white">
       <table className="w-full text-sm">
-        <thead className="border-b border-stone-200 bg-stone-50 text-left text-stone-500">
+        <thead className="sticky top-0 z-10 border-b border-stone-200 bg-stone-50 text-left text-stone-600 shadow-xs">
           <tr>
             <th className="p-3 font-medium">{t('book.title')}</th>
             <th className="p-3 font-medium">{t('book.author')}</th>
