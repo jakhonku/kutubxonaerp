@@ -30,3 +30,24 @@ body {
     transform: translateX(300%);
   }
 }
+
+/* Maxsus yupqa va chiroyli scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d6d3d1 transparent;
+}
+

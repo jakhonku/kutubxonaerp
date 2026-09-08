@@ -141,7 +141,7 @@ export default async function LibrarianDashboard() {
           {overdueList.length === 0 ? (
             <p className="text-sm text-stone-400">{t('librarian.noOverdue')}</p>
           ) : (
-            <ul className="divide-y divide-stone-100">
+            <ul className="custom-scrollbar max-h-[320px] overflow-y-auto divide-y divide-stone-100 pr-1">
               {overdueList.map((loan) => (
                 <li key={loan.id} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
@@ -178,7 +178,7 @@ export default async function LibrarianDashboard() {
           {recentList.length === 0 ? (
             <p className="text-sm text-stone-400">{t('loans.empty')}</p>
           ) : (
-            <ul className="divide-y divide-stone-100">
+            <ul className="custom-scrollbar max-h-[320px] overflow-y-auto divide-y divide-stone-100 pr-1">
               {recentList.map((loan) => {
                 const isOverdue =
                   loan.status === 'active' && new Date(loan.due_date) < new Date();

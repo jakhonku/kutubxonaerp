@@ -223,17 +223,17 @@ export default async function ReportsPage() {
             ]}
           />
         </Card>
-        <Card icon={Languages} title={t('byLanguage')}>
+        <Card icon={Languages} title={t('byLanguage')} count={byLanguage.length}>
           {byLanguage.length ? <HBarChart data={byLanguage} /> : empty}
         </Card>
       </div>
 
       {/* Janr + Eng ko'p o'qilgan */}
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        <Card icon={Tag} title={t('byCategory')}>
+        <Card icon={Tag} title={t('byCategory')} count={byCategory.length}>
           {byCategory.length ? <HBarChart data={byCategory} /> : empty}
         </Card>
-        <Card icon={TrendingUp} title={t('topBorrowed')}>
+        <Card icon={TrendingUp} title={t('topBorrowed')} count={topBorrowed.length}>
           {topBorrowed.length ? <HBarChart data={topBorrowed} suffix={t('times')} /> : empty}
         </Card>
       </div>
@@ -249,7 +249,7 @@ export default async function ReportsPage() {
       </Card>
 
       {/* Sinf bo'yicha */}
-      <Card icon={GraduationCap} title={t('byClass')} className="mb-6">
+      <Card icon={GraduationCap} title={t('byClass')} count={byClass.length} className="mb-6">
         {byClass.length ? <HBarChart data={byClass} /> : empty}
       </Card>
 
@@ -308,23 +308,33 @@ function Tile({
 function Card({
   icon: Icon,
   title,
+  count,
   children,
   className = '',
 }: {
   icon: LucideIcon;
   title: string;
+  count?: number;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <section className={`rounded-2xl border border-stone-200 bg-white p-6 ${className}`}>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="rounded-lg bg-brand-50 p-2 text-brand-600">
-          <Icon className="h-4 w-4" />
-        </span>
-        <h2 className="font-semibold text-stone-900">{title}</h2>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="rounded-lg bg-brand-50 p-2 text-brand-600">
+            <Icon className="h-4 w-4" />
+          </span>
+          <h2 className="font-semibold text-stone-900">{title}</h2>
+        </div>
+        {count !== undefined && count > 0 && (
+          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600">
+            {count}
+          </span>
+        )}
       </div>
       {children}
     </section>
   );
 }
+
