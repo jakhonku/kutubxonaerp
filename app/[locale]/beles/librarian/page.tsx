@@ -1,5 +1,5 @@
 import { getLocale } from 'next-intl/server';
-import { redirect } from '@/i18n/navigation';
+import { Link, redirect } from '@/i18n/navigation';
 import { getProfile } from '@/lib/auth';
 import DashboardShell from '@/components/DashboardShell';
 import BelesDailyCode from '@/components/beles/BelesDailyCode';
@@ -10,6 +10,7 @@ import { belesEnabledInDb } from '@/lib/beles/settings';
 import { belesPageContext } from '@/lib/beles/guard';
 import { belesToday } from '@/lib/beles/time';
 import { belesStrings } from '@/lib/beles/strings';
+import { ListChecks } from 'lucide-react';
 import type { BelesDailyCode as DailyCode, BelesParticipant, BelesProgress } from '@/types/beles';
 
 // Kutubxonachi paneli: kunlik kod, bugungi davomat, ishtirokchilar holati.
@@ -74,6 +75,16 @@ export default async function BelesLibrarianPage() {
 
       {enabled && (
         <>
+        <div className="mb-8">
+          <Link
+            href="/beles/librarian/puzzles"
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-4 py-3 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+          >
+            <ListChecks className="h-5 w-5" />
+            {s.puzzlesTitle}
+          </Link>
+        </div>
+
         <div className="mb-8">
           <BelesDailyCode locale={locale} initialCode={(codeRow as DailyCode | null)?.code ?? null} />
         </div>
